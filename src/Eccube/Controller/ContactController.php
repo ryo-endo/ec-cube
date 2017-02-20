@@ -27,7 +27,10 @@ namespace Eccube\Controller;
 use Eccube\Application;
 use Eccube\Event\EccubeEvents;
 use Eccube\Event\EventArgs;
+use Symfony\Component\Form\FormBuilder;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ContactController
 {
@@ -43,24 +46,7 @@ class ContactController
         $builder = $app['form.factory']->createBuilder('contact');
 
         if ($app->isGranted('ROLE_USER')) {
-            $user = $app['user'];
-            $builder->setData(
-                array(
-                    'name01' => $user->getName01(),
-                    'name02' => $user->getName02(),
-                    'kana01' => $user->getKana01(),
-                    'kana02' => $user->getKana02(),
-                    'zip01' => $user->getZip01(),
-                    'zip02' => $user->getZip02(),
-                    'pref' => $user->getPref(),
-                    'addr01' => $user->getAddr01(),
-                    'addr02' => $user->getAddr02(),
-                    'tel01' => $user->getTel01(),
-                    'tel02' => $user->getTel02(),
-                    'tel03' => $user->getTel03(),
-                    'email' => $user->getEmail(),
-                )
-            );
+            $this->createContact($app, $builder);
         }
 
         // FRONT_CONTACT_INDEX_INITIALIZE
@@ -78,16 +64,13 @@ class ContactController
         if ($form->isSubmitted() && $form->isValid()) {
             switch ($request->get('mode')) {
                 case 'confirm':
-                    $builder->setAttribute('freeze', true);
-                    $form = $builder->getForm();
-                    $form->handleRequest($request);
+                    $data = $form->getData();
+                    $app['session']->set('contact', $data);
 
-                    return $app->render('Contact/confirm.twig', array(
-                        'form' => $form->createView(),
-                    ));
+                    return $app->redirect($app->url('contact_confirm'));
+                    break;
 
                 case 'complete':
-
                     $data = $form->getData();
 
                     $event = new EventArgs(
@@ -105,6 +88,7 @@ class ContactController
                     $app['eccube.service.mail']->sendContactMail($data);
 
                     return $app->redirect($app->url('contact_complete'));
+                    break;
             }
         }
 
@@ -114,6 +98,40 @@ class ContactController
     }
 
     /**
+     * @param Application $app
+     * @param Request     $request
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function confirm(Application $app, Request $request)
+    {
+        /** @var $builder FormBuilder*/
+        $builder = $app['form.factory']->createBuilder('contact');
+
+        if ($app->isGranted('ROLE_USER')) {
+            $this->createContact($app, $builder);
+        }
+
+        $builder->setAttribute('freeze', true);
+        /** @var $form FormInterface */
+        $form = $builder->getForm();
+        if (!$app['session']->has('contact')) {
+            throw new NotFoundHttpException();
+        }
+        $data = $app['session']->get('contact');
+        // Error choice from entity
+        if (is_object($data['pref'])) {
+            $id = $data['pref']->getId();
+            $data['pref'] = $app['eccube.repository.master.pref']->find($id);
+        }
+        $form->setData($data);
+
+        $app['session']->remove('contact');
+
+        return $app->render('Contact/confirm.twig', array(
+            'form' => $form->createView(),
+        ));
+    }
+    /**
      * お問い合わせ完了画面.
      *
      * @param Application $app
@@ -122,5 +140,31 @@ class ContactController
     public function complete(Application $app)
     {
         return $app->render('Contact/complete.twig');
+    }
+
+    /**
+     * @param Application $app
+     * @param $builder
+     */
+    private function createContact(Application $app, &$builder)
+    {
+        $user = $app['user'];
+        $builder->setData(
+            array(
+                'name01' => $user->getName01(),
+                'name02' => $user->getName02(),
+                'kana01' => $user->getKana01(),
+                'kana02' => $user->getKana02(),
+                'zip01' => $user->getZip01(),
+                'zip02' => $user->getZip02(),
+                'pref' => $user->getPref(),
+                'addr01' => $user->getAddr01(),
+                'addr02' => $user->getAddr02(),
+                'tel01' => $user->getTel01(),
+                'tel02' => $user->getTel02(),
+                'tel03' => $user->getTel03(),
+                'email' => $user->getEmail(),
+            )
+        );
     }
 }
