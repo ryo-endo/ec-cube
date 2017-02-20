@@ -9,7 +9,7 @@
     <!-- テストの場所 -->
     <testsuites>
         <testsuite name="EC-CUBE Test Suite">
-            <directory>./tests</directory>
+            <directory>./tests/Eccube/Tests/Doctrine/ORM/Tools</directory>
         </testsuite>
     </testsuites>
 
