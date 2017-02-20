@@ -24,6 +24,8 @@
 
 namespace Eccube\Tests\Web;
 
+use Symfony\Component\BrowserKit\Client;
+
 class ContactControllerTest extends AbstractWebTestCase
 {
 
@@ -86,16 +88,18 @@ class ContactControllerTest extends AbstractWebTestCase
 
     public function testConfirm()
     {
+        /** @var $client Client*/
         $client = $this->createClient();
 
-        $crawler = $client->request(
+        $client->request(
             'POST',
             $this->app->path('contact'),
             array('contact' => $this->createFormData(),
                   'mode' => 'confirm')
         );
-        $this->assertTrue($client->getResponse()->isSuccessful());
 
+        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('contact_confirm')));
+        $crawler = $client->followRedirect();
         $this->expected = 'お問い合わせ(確認ページ)';
         $this->actual = $crawler->filter('title')->text();
         $this->assertRegexp('/'.preg_quote($this->expected).'$/', $this->actual);
