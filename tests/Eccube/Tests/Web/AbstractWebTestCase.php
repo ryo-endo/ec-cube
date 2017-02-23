@@ -27,6 +27,7 @@ namespace Eccube\Tests\Web;
 use Eccube\Tests\EccubeTestCase;
 use Eccube\Tests\Mock\CsrfTokenMock;
 use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\BrowserKit\Response;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\HttpKernel\Client;
@@ -44,8 +45,24 @@ abstract class AbstractWebTestCase extends EccubeTestCase
 
     public function tearDown()
     {
+        if ($this->hasFailed()) {
+            if ($this->client && $this->client->getResponse()) {
+                /** @var Response $response */
+                $response = $this->client->getResponse();
+                dump($response->getContent());
+            }
+        }
+
         parent::tearDown();
+
         $this->client = null;
+    }
+
+    public function createClient(array $server = array())
+    {
+        $this->client = parent::createClient($server);
+
+        return $this->client;
     }
 
     /**
