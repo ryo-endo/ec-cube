@@ -1,7 +1,7 @@
 以下を参考にコメントを作成してください。
 
 ## 概要(Overview・Refs Issue)
-+ PullRequestの目的、関連するIssue番号など
+<!-- PullRequestの目的、関連するIssue番号など -->
 
 ## 方針(Policy)
 + このPullRequestを作るにあたって考慮したものや除外し内容
