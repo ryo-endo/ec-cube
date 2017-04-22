@@ -1,3 +1,5 @@
+### hoge
+
 # EC-CUBE 3.x
 
 [![Build Status](https://travis-ci.org/EC-CUBE/ec-cube.svg?branch=master)](https://travis-ci.org/EC-CUBE/ec-cube)
