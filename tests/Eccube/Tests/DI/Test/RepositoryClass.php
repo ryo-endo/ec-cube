@@ -7,6 +7,6 @@ use Eccube\Annotation\Repository;
 /**
  * @Repository
  */
-class RepositoryClazz
+class RepositoryClass
 {
 }

@@ -24,7 +24,7 @@
 namespace Eccube\Tests\DI\AutoWiring;
 
 use Eccube\DI\AutoWiring\RepositoryAutoWiring;
-use Eccube\Tests\DI\Test\RepositoryClazz;
+use Eccube\Tests\DI\Test\RepositoryClass;
 
 class RepositoryAutoWiringTest extends AbstractAutowiringTest
 {
@@ -38,6 +38,6 @@ class RepositoryAutoWiringTest extends AbstractAutowiringTest
     {
         $this->di->build($this->container);
 
-        self::assertArrayHasKey(RepositoryClazz::class, $this->container);
+        self::assertArrayHasKey(RepositoryClass::class, $this->container);
     }
 }

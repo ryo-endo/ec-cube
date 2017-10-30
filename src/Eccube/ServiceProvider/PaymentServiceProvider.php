@@ -14,23 +14,23 @@ class PaymentServiceProvider implements ServiceProviderInterface
 {
     public function register(Container $app)
     {
-        $app['payment.method'] = $app->protect(function ($clazz, $form) use ($app) {
-            $PaymentMethod = new $clazz;
+        $app['payment.method'] = $app->protect(function ($class, $form) use ($app) {
+            $PaymentMethod = new $class;
             $PaymentMethod->setApplication($app);
             $PaymentMethod->setFormType($form);
             return $PaymentMethod;
         });
 
-        $app['payment.method.request'] = $app->protect(function ($clazz, $form, $request) use ($app) {
-            $PaymentMethod = new $clazz;
+        $app['payment.method.request'] = $app->protect(function ($class, $form, $request) use ($app) {
+            $PaymentMethod = new $class;
             $PaymentMethod->setApplication($app);
             $PaymentMethod->setFormType($form);
             $PaymentMethod->setRequest($request);
             return $PaymentMethod;
         });
 
-        $app['eccube.service.payment'] = $app->protect(function ($clazz) use ($app) {
-            $Service = new $clazz($app['request_stack']);
+        $app['eccube.service.payment'] = $app->protect(function ($class) use ($app) {
+            $Service = new $class($app['request_stack']);
 
             return $Service;
         });
