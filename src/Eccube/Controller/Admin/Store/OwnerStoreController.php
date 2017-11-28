@@ -31,6 +31,7 @@ use Eccube\Entity\Plugin;
 use Eccube\Repository\PluginRepository;
 use Eccube\Service\Composer\ComposerServiceInterface;
 use Eccube\Service\PluginService;
+use Eccube\Service\SystemService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
@@ -72,6 +73,12 @@ class OwnerStoreController extends AbstractController
      * @Inject("orm.em")
      */
     protected $em;
+
+    /**
+     * @Inject(SystemService::class)
+     * @var SystemService
+     */
+    protected $systemService;
 
     private static $vendorName = 'ec-cube';
 
@@ -251,19 +258,42 @@ class OwnerStoreController extends AbstractController
 
         // Unset first param
         unset($dependents[0]);
+        $dependentModifier = [];
         $packageNames = '';
         if (!empty($dependents)) {
             foreach ($dependents as $item) {
-                $packageNames .= self::$vendorName.'/'.$item['product_code'].' ';
+                $packageNames .= self::$vendorName . '/' . $item['product_code'] . ' ';
+                $pluginItem = [
+                    "product_code" => $item['product_code'],
+                    "version" => $item['version']
+                ];
+                array_push($dependentModifier, $pluginItem);
             }
         }
-        $packageNames .= self::$vendorName.'/'.$pluginCode;
+        $packageNames .= self::$vendorName . '/' . $pluginCode;
         $return = $this->composerService->execRequire($packageNames);
+        $data = array(
+            'code' => $pluginCode,
+            'version' => $version,
+            'core_version' => $eccubeVersion,
+            'php_version' => phpversion(),
+            'db_version' => $this->systemService->getDbversion(),
+            'os' => php_uname('s') . ' ' . php_uname('r') . ' ' . php_uname('v'),
+            'host' => $request->getHost(),
+            'web_server' => $request->server->get("SERVER_SOFTWARE"),
+            'composer_version' => $this->composerService->composerVersion(),
+            'composer_execute_mode' => $this->composerService->getMode(),
+            'dependents' => json_encode($dependentModifier)
+        );
         if ($return) {
+            $url = $this->appConfig['package_repo_url'] . '/report';
+            $this->postRequestApi($url, $app, $data);
             $app->addSuccess('admin.plugin.install.complete', 'admin');
 
             return $app->redirect($app->url('admin_store_plugin'));
         }
+        $url = $this->appConfig['package_repo_url'] . '/report/fail';
+        $this->postRequestApi($url, $app, $data);
         $app->addError('admin.plugin.install.fail', 'admin');
 
         return $app->redirect($app->url('admin_store_plugin_owners_search'));
@@ -379,6 +409,31 @@ class OwnerStoreController extends AbstractController
 
         $app->log('http get_info', $info);
 
+        return array($result, $info);
+    }
+
+    /**
+     * API post request processing
+     *
+     * @param string  $url
+     * @param Application $app
+     * @param array $data
+     * @return array
+     */
+    private function postRequestApi($url, $app, $data)
+    {
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_POST, 1);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        $result = curl_exec($curl);
+        $info = curl_getinfo($curl);
+        $message = curl_error($curl);
+        $info['message'] = $message;
+        curl_close($curl);
+
+        $app->log('http post_info', $info);
         return array($result, $info);
     }
 
