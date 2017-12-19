@@ -11,12 +11,16 @@
         "issues": "https://github.com/EC-CUBE/ec-cube/issues"
     },
     "minimum-stability": "stable",
-    "repositories": [
-        {
+    "repositories": {
+        "0": {
             "type": "vcs",
             "url": "https://github.com/EC-CUBE/sensio-framework-extra-service-provider"
+        },
+        "eccube": {
+            "type": "composer",
+            "url": "https://package-repo.ec-cube.net"
         }
-    ],
+    },
     "require": {
         "php": "^5.6 || ^7.0",
         "ext-intl": "^1.1",

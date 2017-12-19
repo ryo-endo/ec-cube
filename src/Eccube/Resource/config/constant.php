@@ -56,7 +56,7 @@
     'csv_import_delimiter' => ',',
     'csv_import_enclosure' => '"',
     'csv_import_escape' => '\\',
-    'package_repo_url' => 'https://www.ec-cube.net/upgrade/api/',
+    'package_repo_url' => 'https://package-repo.ec-cube.net',
     'birth_max' => 110,
     'product_order_price_lower' => 1,
     'product_order_newer' => 2,
