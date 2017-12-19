@@ -45,10 +45,8 @@ class ComposerServiceProvider implements ServiceProviderInterface
             $memoryLimit = $systemService->getMemoryLimit();
             // Check memory and can set memory for composer api
             if ($systemService->canSetMemoryLimit($composerMemory.'M') || $memoryLimit == -1 || $memoryLimit >= $composerMemory) {
-                dump('Api');
                 return new ComposerApiService($app['config']);
             } else {
-                dump('Exec');
                 return new ComposerProcessService($app['config'], $app['orm.em'], $systemService->getPHP());
             }
         };
