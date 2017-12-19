@@ -280,6 +280,7 @@ class OwnerStoreController extends AbstractController
 
             return $app->redirect($app->url('admin_store_plugin'));
         } catch (\Exception $exception) {
+            dump($exception);
             log_info($exception);
         }
 
