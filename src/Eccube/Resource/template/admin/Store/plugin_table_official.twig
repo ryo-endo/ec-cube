@@ -26,8 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
                 <thead>
                 <tr>
                     <th>プラグイン名</th>
-                    <th>プラグインアイコン画像</th>
-                    <th>プラグインバージョン</th>
+                    <th>バージョン</th>
                     <th>プラグインコード</th>
                     <th>アップデート</th>
                     <th>設定</th>
@@ -40,7 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
                     {% set pluginDetail = officialPluginsDetail[key] %}
                         <tr class="{% if Plugin.enabled == false %}active{% endif %}">
                             <td class="tp">
-                                <strong>{{ Plugin.name }}</strong>{% if Plugin.enabled == 0 %}<span class="text-danger"> (停止中)</span>{% endif %}<br>
+                                <a href="{{ pluginDetail.product_url }}" target="_blank"><img class="img-rounded" src="{{ pluginDetail.product_image_url }}" width="70" style="float: left;     margin-right: 20px;"></a>
+                                <strong>{{ pluginDetail.name }}</strong>{% if Plugin.enabled == 0 %}<span class="text-danger"> (停止中)</span>{% endif %}<br>
                                 {% if Plugin.enabled %}
                                     <a href="{{ url('admin_store_plugin_disable', { id : Plugin.id }) }}" {{ csrf_token_for_anchor() }} data-method="put" data-confirm="false">
                                         無効にする
@@ -59,11 +59,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
                                     </a>
                                 {% endif %}
                             </td>
-                            <td class="tc">
-                                <div class="plugin-logo">
-                                    <a href="{{ pluginDetail.product_url }}" target="_blank"><img class="img-rounded" src="{{ pluginDetail.product_image_url }}"></a>
-                                </div>
-                            </td>
                             <td class="tv text-center" style="width: 136px">{{ Plugin.version }}</td>
                             <td class="tc"><p>{{ Plugin.code }}</p>
                                 {% if attribute(app.config[Plugin.code].const, 'readme') is defined %}
@@ -80,7 +75,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
                                         <li class="plugin-update">更新日 : {{ pluginDetail.last_update_date|time_ago }}</li>
                                     </ul>
                                 {% else %}
-                                    <p>アップデート対象プラグインはありません。</p>
+                                    <p><small>アップデート対象プラグインはありません。</small></p>
                                 {% endif %}
                                 <p><a href="{{ pluginDetail.product_url }}" target="_blank">詳細情報</a></p>
                             </td>
@@ -90,7 +85,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
                                 {% endif %}
                             </td>
                             <td class="tv">
-                                <a href="{{ pluginDetail.developer_url }}" target="_blank">{{ pluginDetail.developer }}</a>
+                                <small><a href="{{ pluginDetail.developer_url }}" target="_blank">{{ pluginDetail.developer }}</a></small>
                             </td>
                         </tr>
                 {% endfor %}
