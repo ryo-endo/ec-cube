@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
                     {% set pluginDetail = officialPluginsDetail[key] %}
                         <tr class="{% if Plugin.enabled == false %}active{% endif %}">
                             <td class="tp">
-                                <a href="{{ pluginDetail.product_url }}" target="_blank"><img class="img-rounded" src="{{ pluginDetail.product_image_url }}" width="70" style="float: left;     margin-right: 20px;"></a>
+                                <a href="{{ pluginDetail.product_url }}" target="_blank"><img class="img-rounded" src="{{ pluginDetail.product_image_url }}" width="70" style="float: left; margin-right: 20px; width:70px;"></a>
                                 <strong>{{ pluginDetail.name }}</strong>{% if Plugin.enabled == 0 %}<span class="text-danger"> (停止中)</span>{% endif %}<br>
                                 {% if Plugin.enabled %}
                                     <a href="{{ url('admin_store_plugin_disable', { id : Plugin.id }) }}" {{ csrf_token_for_anchor() }} data-method="put" data-confirm="false">
