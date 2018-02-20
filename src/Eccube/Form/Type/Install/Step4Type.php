@@ -129,7 +129,7 @@ class Step4Type extends AbstractType
                     $conn = \Doctrine\DBAL\DriverManager::getConnection($connectionParams, $config);
                     $conn->connect();
                 } catch (\Exception $e) {
-                    $form['database']->addError(new FormError('データベースに接続できませんでした。' . $e->getMessage()));
+                    $form['database']->addError(new FormError(trans('install.text.error.database.unreachable').$e->getMessage()));
                 }
             });
     }

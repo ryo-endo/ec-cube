@@ -110,13 +110,13 @@ class SecurityType extends AbstractType
                         )
                     );
                     if ($errors->count() != 0) {
-                        $form['admin_allow_hosts']->addError(new FormError($ip . 'はIPv4アドレスではありません。'));
+                        $form['admin_allow_hosts']->addError(new FormError(trans('form.type.admin.security.ipv4.invalid', ['%ip%' => $ip])));
                     }
                 }
 
                 $request = $this->requestStack->getCurrentRequest();
                 if ($data['force_ssl'] && !$request->isSecure()) {
-                    $form['force_ssl']->addError(new FormError('httpの場合には設定できません。'));
+                    $form['force_ssl']->addError(new FormError(trans('admin.setting.system.security.711')));
                 }
             })
         ;

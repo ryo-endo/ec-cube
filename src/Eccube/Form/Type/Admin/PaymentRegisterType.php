@@ -88,7 +88,7 @@ class PaymentRegisterType extends AbstractType
                 $ruleMax = $form['rule_max']->getData();
                 $ruleMin = $form['rule_min']->getData();
                 if (!empty($ruleMin) && !empty($ruleMax) && $ruleMax < $ruleMin) {
-                    $form['rule_min']->addError(new FormError('利用条件(下限)は'.$ruleMax.'円以下にしてください。'));
+                    $form['rule_min']->addError(new FormError(trans('form.type.admin.payment_register.invalid', ['%ruleMax%' => $ruleMax])));
                 }
             });
     }

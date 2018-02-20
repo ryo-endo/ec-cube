@@ -106,8 +106,7 @@ class TelType extends AbstractType
                 $count++;
             }
             if ($count != 0 && $count != 3) {
-                // todo メッセージをymlに入れる
-                $form[$options['tel01_name']]->addError(new FormError('全て入力してください。'));
+                $form[$options['tel01_name']]->addError(new FormError(trans('form.type.tel.invalid')));
             }
         });
     }

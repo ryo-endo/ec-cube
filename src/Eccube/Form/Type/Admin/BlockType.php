@@ -129,7 +129,7 @@ class BlockType extends AbstractType
                     ->getQuery()
                     ->getResult();
                 if (count($Block) > 0) {
-                    $form['file_name']->addError(new FormError('※ 同じファイル名のデータが存在しています。別のファイル名を入力してください。'));
+                    $form['file_name']->addError(new FormError(trans('form.type.admin.block.duplicated')));
                 }
             });
     }

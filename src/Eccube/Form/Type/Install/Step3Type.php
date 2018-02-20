@@ -154,7 +154,7 @@ class Step3Type extends AbstractType
                         )
                     );
                     if ($errors->count() != 0) {
-                        $form['admin_allow_hosts']->addError(new FormError($ip . 'はIPv4アドレスではありません。'));
+                        $form['admin_allow_hosts']->addError(new FormError(trans('form.type.admin.security.ipv4.invalid', ['%ip%' => $ip])));
                     }
                 }
             })
