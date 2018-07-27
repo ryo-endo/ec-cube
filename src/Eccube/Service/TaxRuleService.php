@@ -1,42 +1,28 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-
 namespace Eccube\Service;
+
+use Eccube\Repository\TaxRuleRepository;
 
 class TaxRuleService
 {
     /**
-     * @var \Eccube\Repository\TaxRuleRepository
+     * @var TaxRuleRepository
      */
-    private $taxRuleRepository;
+    protected $taxRuleRepository;
 
-    /**
-     * __construct
-     *
-     * @param \Eccube\Repository\TaxRuleRepository $taxRuleRepository
-     */
-    public function __construct(\Eccube\Repository\TaxRuleRepository $taxRuleRepository)
+    public function __construct(TaxRuleRepository $taxRuleRepository)
     {
         $this->taxRuleRepository = $taxRuleRepository;
     }
@@ -49,6 +35,7 @@ class TaxRuleService
      * @param  int|null|\Eccube\Entity\ProductClass   $productClass 商品規格
      * @param  int|null|\Eccube\Entity\Master\Pref    $pref         都道府県
      * @param  int|null|\Eccube\Entity\Master\Country $country      国
+     *
      * @return double                                 税金付与した金額
      */
     public function getTax($price, $product = null, $productClass = null, $pref = null, $country = null)
@@ -56,7 +43,7 @@ class TaxRuleService
         /* @var $TaxRule \Eccube\Entity\TaxRule */
         $TaxRule = $this->taxRuleRepository->getByRule($product, $productClass, $pref, $country);
 
-        return $this->calcTax($price, $TaxRule->getTaxRate(), $TaxRule->getCalcRule()->getId(), $TaxRule->getTaxAdjust());
+        return $this->calcTax($price, $TaxRule->getTaxRate(), $TaxRule->getRoundingType()->getId(), $TaxRule->getTaxAdjust());
     }
 
     /**
@@ -67,6 +54,7 @@ class TaxRuleService
      * @param  int|null|\Eccube\Entity\ProductClass   $productClass 商品規格
      * @param  int|null|\Eccube\Entity\Master\Pref    $pref         都道府県
      * @param  int|null|\Eccube\Entity\Master\Country $country      国
+     *
      * @return int
      */
     public function getPriceIncTax($price, $product = null, $productClass = null, $pref = null, $country = null)
@@ -79,14 +67,15 @@ class TaxRuleService
      *
      * @param  int    $price     計算対象の金額
      * @param  int    $taxRate   税率(%単位)
-     * @param  int    $calcRule  端数処理
+     * @param  int    $RoundingType  端数処理
      * @param  int    $taxAdjust 調整額
+     *
      * @return double 税金額
      */
-    public function calcTax($price, $taxRate, $calcRule, $taxAdjust = 0)
+    public function calcTax($price, $taxRate, $RoundingType, $taxAdjust = 0)
     {
         $tax = $price * $taxRate / 100;
-        $roundTax = $this->roundByCalcRule($tax, $calcRule);
+        $roundTax = $this->roundByRoundingType($tax, $RoundingType);
 
         return $roundTax + $taxAdjust;
     }
@@ -96,21 +85,22 @@ class TaxRuleService
      *
      * @param  float|integer $value    端数処理を行う数値
      * @param  integer       $calcRule 課税規則
+     *
      * @return double        端数処理後の数値
      */
-    public function roundByCalcRule($value, $calcRule)
+    public function roundByRoundingType($value, $RoundingType)
     {
-        switch ($calcRule) {
+        switch ($RoundingType) {
             // 四捨五入
-            case \Eccube\Entity\Master\Taxrule::ROUND:
+            case \Eccube\Entity\Master\RoundingType::ROUND:
                 $ret = round($value);
                 break;
             // 切り捨て
-            case \Eccube\Entity\Master\Taxrule::FLOOR:
+            case \Eccube\Entity\Master\RoundingType::FLOOR:
                 $ret = floor($value);
                 break;
             // 切り上げ
-            case \Eccube\Entity\Master\Taxrule::CEIL:
+            case \Eccube\Entity\Master\RoundingType::CEIL:
                 $ret = ceil($value);
                 break;
             // デフォルト:切り上げ

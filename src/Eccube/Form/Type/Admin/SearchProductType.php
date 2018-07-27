@@ -1,41 +1,44 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Form\Type\Admin;
 
+use Eccube\Entity\Master\ProductStatus;
+use Eccube\Entity\ProductStock;
+use Eccube\Form\Type\Master\CategoryType as MasterCategoryType;
+use Eccube\Form\Type\Master\ProductStatusType;
+use Eccube\Repository\Master\ProductStatusRepository;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Validator\Constraints as Assert;
 
 class SearchProductType extends AbstractType
 {
-    public $app;
+    /**
+     * @var ProductStatusRepository
+     */
+    protected $productStatusRepository;
 
-    public function __construct(\Silex\Application $app)
+    /**
+     * SearchProductType constructor.
+     *
+     * @param ProductStatusRepository $productStatusRepository
+     */
+    public function __construct(ProductStatusRepository $productStatusRepository)
     {
-        $this->app = $app;
+        $this->productStatusRepository = $productStatusRepository;
     }
 
     /**
@@ -43,75 +46,74 @@ class SearchProductType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $app = $this->app;
-
         $builder
-            ->add('id', 'text', array(
-                'label' => '商品ID',
+            ->add('id', TextType::class, [
+                'label' => 'searchproduct.label.multi',
                 'required' => false,
-            ))
-            /*
-            ->add('code', 'text', array(
-                'label' => '商品コード',
+            ])
+            ->add('category_id', MasterCategoryType::class, [
+                'label' => 'searchproduct.label.category',
+                'placeholder' => 'searchproduct.placeholder.select',
                 'required' => false,
-            ))
-            ->add('name', 'text', array(
-                'label' => '商品名',
+            ])
+            ->add('status', ProductStatusType::class, [
+                'label' => 'searchproduct.label.type',
+                'multiple' => true,
                 'required' => false,
-            ))
-             */
-            ->add('category_id', 'category', array(
-                'label' => 'カテゴリ',
-                'empty_value' => '選択してください',
-                'required' => false,
-            ))
-            ->add('status', 'disp', array(
-                'label' => '種別',
-                'multiple'=> true,
-                'required' => false,
-            ))
-            ->add('create_date_start', 'date', array(
-                'label' => '登録日(FROM)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('create_date_end', 'date', array(
-                'label' => '登録日(TO)',
+                'expanded' => true,
+                'data' => $this->productStatusRepository->findBy(['id' => [
+                    ProductStatus::DISPLAY_SHOW,
+                    ProductStatus::DISPLAY_HIDE,
+                ]]),
+            ])
+            ->add('stock', ChoiceType::class, [
+                'label' => 'searchproduct.label.stock',
+                'choices' => [
+                    'admin.product.index.filter_in_stock' => ProductStock::IN_STOCK,
+                    'admin.product.index.filter_out_of_stock' => ProductStock::OUT_OF_STOCK,
+                ],
+                'expanded' => true,
+                'multiple' => true,
+            ])
+            ->add('create_date_start', DateType::class, [
+                'label' => 'searchproduct.label.registration_date_from',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'single_text',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('update_date_start', 'date', array(
-                'label' => '更新日(FROM)',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('create_date_end', DateType::class, [
+                'label' => 'searchproduct.label.registration_date_to',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'single_text',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('update_date_end', 'date', array(
-                'label' => '更新日(TO)',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('update_date_start', DateType::class, [
+                'label' => 'searchproduct.label.updated_date_from',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'single_text',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('link_status', 'hidden', array(
-                'mapped' => false,
-            ))
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('update_date_end', DateType::class, [
+                'label' => 'searchproduct.label.updated_date_from',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
         ;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'admin_search_product';
     }

@@ -1,50 +1,85 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Eccube\Util\EntityUtil;
 
 /**
  * AuthorityRole
+ *
+ * @ORM\Table(name="dtb_authority_role")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\AuthorityRoleRepository")
  */
 class AuthorityRole extends \Eccube\Entity\AbstractEntity
 {
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="deny_url", type="string", length=255)
      */
     private $deny_url;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
     /**
      * @var \Eccube\Entity\Master\Authority
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\Authority")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="authority_id", referencedColumnName="id")
+     * })
      */
     private $Authority;
 
     /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
-
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -52,9 +87,10 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set deny_url
+     * Set denyUrl.
      *
      * @param string $denyUrl
+     *
      * @return AuthorityRole
      */
     public function setDenyUrl($denyUrl)
@@ -65,7 +101,7 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get deny_url
+     * Get denyUrl.
      *
      * @return string
      */
@@ -75,9 +111,10 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set create_date
+     * Set createDate.
      *
      * @param \DateTime $createDate
+     *
      * @return AuthorityRole
      */
     public function setCreateDate($createDate)
@@ -88,7 +125,7 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -98,9 +135,10 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
      * @param \DateTime $updateDate
+     *
      * @return AuthorityRole
      */
     public function setUpdateDate($updateDate)
@@ -111,7 +149,7 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -121,9 +159,10 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Authority
+     * Set authority.
      *
-     * @param \Eccube\Entity\Master\Authority $authority
+     * @param \Eccube\Entity\Master\Authority|null $authority
+     *
      * @return AuthorityRole
      */
     public function setAuthority(\Eccube\Entity\Master\Authority $authority = null)
@@ -134,9 +173,9 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Authority
+     * Get authority.
      *
-     * @return \Eccube\Entity\Master\Authority
+     * @return \Eccube\Entity\Master\Authority|null
      */
     public function getAuthority()
     {
@@ -144,12 +183,13 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set creator.
      *
-     * @param \Eccube\Entity\Member $creator
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return AuthorityRole
      */
-    public function setCreator(\Eccube\Entity\Member $creator)
+    public function setCreator(\Eccube\Entity\Member $creator = null)
     {
         $this->Creator = $creator;
 
@@ -157,15 +197,12 @@ class AuthorityRole extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Creator
+     * Get creator.
      *
-     * @return \Eccube\Entity\Member
+     * @return \Eccube\Entity\Member|null
      */
     public function getCreator()
     {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
         return $this->Creator;
     }
 }

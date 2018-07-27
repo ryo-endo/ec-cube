@@ -1,24 +1,14 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace Eccube\Command;
@@ -26,11 +16,10 @@ namespace Eccube\Command;
 use Eccube\Doctrine\Common\CsvDataFixtures\CsvFixture;
 use Eccube\Doctrine\Common\CsvDataFixtures\Executor\DbalExecutor;
 use Eccube\Doctrine\Common\CsvDataFixtures\Loader;
-use Knp\Command\Command;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-
 
 class CsvLoaderCommand extends Command
 {
@@ -65,10 +54,8 @@ EOF
             );
     }
 
-
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-
         /** @var \Eccube\Application $app */
         $app = $this->getSilexApplication();
 
@@ -76,7 +63,7 @@ EOF
         $directory = $input->getOption('directory');
 
         if (!$file && !$directory) {
-            $output->writeln("<error>CSV File Name or Directory Name not set.</error>");
+            $output->writeln('<error>CSV File Name or Directory Name not set.</error>');
 
             return;
         }
@@ -89,7 +76,7 @@ EOF
                 $file = new \SplFileObject($file);
 
                 if ($file->isFile()) {
-                    $output->writeln(sprintf("<comment>CSV Load %s</comment>", $file->getFilename()));
+                    $output->writeln(sprintf('<comment>CSV Load %s</comment>', $file->getFilename()));
 
                     $loader = new Loader();
                     $CsvFixture = new CsvFixture($file->openFile());
@@ -99,31 +86,29 @@ EOF
                     $fixtures = $loader->getFixtures();
                     $Executor->execute($fixtures);
 
-                    $output->writeln("<info>CSV Loader complete.</info>");
+                    $output->writeln('<info>CSV Loader complete.</info>');
                 } else {
-                    $output->writeln("<error>CSV File Name not set.</error>");
+                    $output->writeln('<error>CSV File Name not set.</error>');
                 }
             } else {
-                $output->writeln("<error>CSV File Name not set.</error>");
+                $output->writeln('<error>CSV File Name not set.</error>');
             }
         }
 
         if ($directory) {
             // ディレクトリ名が指定された場合
             if (is_dir($directory)) {
-
-                $output->writeln(sprintf("<comment>CSV Load %s</comment>", $directory));
+                $output->writeln(sprintf('<comment>CSV Load %s</comment>', $directory));
                 $loader = new Loader();
                 $loader->loadFromDirectory($directory);
                 $Executor = new DbalExecutor($em);
                 $fixtures = $loader->getFixtures();
                 $Executor->execute($fixtures);
 
-                $output->writeln("<info>CSV Loader complete.</info>");
+                $output->writeln('<info>CSV Loader complete.</info>');
             } else {
-                $output->writeln("<error>CSV Directory Name not set.</error>");
+                $output->writeln('<error>CSV Directory Name not set.</error>');
             }
         }
-
     }
 }

@@ -1,45 +1,51 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Form\Type\Admin;
 
 use Eccube\Form\DataTransformer;
+use Eccube\Form\Type\Master\DeliveryDurationType;
+use Eccube\Form\Type\Master\SaleTypeType;
+use Eccube\Form\Type\PriceType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvents;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
+use Doctrine\ORM\EntityManagerInterface;
+use Eccube\Entity\ClassCategory;
 
 class ProductClassType extends AbstractType
 {
-    public $app;
+    /**
+     * @var EntityManagerInterface
+     */
+    protected $entityManager;
 
-    public function __construct(\Silex\Application $app)
-    {
-        $this->app = $app;
+    /**
+     * ProductClassType constructor.
+     *
+     * @param EntityManagerInterface $entityManager
+     */
+    public function __construct(
+        EntityManagerInterface $entityManager
+    ) {
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -47,144 +53,97 @@ class ProductClassType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $app = $this->app;
-
         $builder
-            ->add('code', 'text', array(
-                'label' => '商品コード',
+            ->add('code', TextType::class, [
+                'label' => 'productclass.label.product_code',
                 'required' => false,
-            ))
-            ->add('stock', 'number', array(
-                'label' => '在庫数',
+                'constraints' => [
+                    new Assert\Length([
+                        'max' => 255,
+                    ]),
+                ],
+            ])
+            ->add('stock', NumberType::class, [
+                'label' => 'productclass.label.stock',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Regex(array(
+                'constraints' => [
+                    new Assert\Regex([
                         'pattern' => "/^\d+$/u",
-                        'message' => 'form.type.numeric.invalid'
-                    )),
-                ),
-            ))
-            ->add('sale_limit', 'number', array(
-                'label' => '販売制限数',
+                        'message' => 'form.type.numeric.invalid',
+                    ]),
+                ],
+            ])
+            ->add('stock_unlimited', CheckboxType::class, [
+                'label' => 'productclass.label.unlimited',
+                'value' => '1',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Length(array(
+            ])
+            ->add('sale_limit', NumberType::class, [
+                'label' => 'productclass.label.max_order',
+                'required' => false,
+                'constraints' => [
+                    new Assert\Length([
                         'max' => 10,
-                    )),
-                    new Assert\GreaterThanOrEqual(array(
+                    ]),
+                    new Assert\GreaterThanOrEqual([
                         'value' => 1,
-                    )),
-                    new Assert\Regex(array(
+                    ]),
+                    new Assert\Regex([
                         'pattern' => "/^\d+$/u",
-                        'message' => 'form.type.numeric.invalid'
-                    )),
-                ),
-            ))
-            ->add('price01', 'money', array(
-                'label' => '通常価格',
-                'currency' => 'JPY',
-                'precision' => 0,
-                'scale' => 0,
-                'grouping' => true,
+                        'message' => 'form.type.numeric.invalid',
+                    ]),
+                ],
+            ])
+            ->add('price01', PriceType::class, [
+                'label' => 'productclass.label.regular_price',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Length(array(
-                        'max' => 10,
-                    )),
-                    new Assert\Regex(array(
-                        'pattern' => "/^\d+$/u",
-                        'message' => 'form.type.numeric.invalid'
-                    )),
-                ),
-            ))
-            ->add('price02', 'money', array(
-                'label' => '販売価格',
-                'currency' => 'JPY',
-                'precision' => 0,
-                'scale' => 0,
-                'grouping' => true,
-                'constraints' => array(
-                    new Assert\NotBlank(),
-                    new Assert\Length(array(
-                        'max' => 10,
-                    )),
-                    new Assert\Regex(array(
-                        'pattern' => "/^\d+$/u",
-                        'message' => 'form.type.numeric.invalid'
-                    )),
-                ),
-            ))
-            ->add('tax_rate', 'text', array(
-                'label' => '消費税率',
+            ])
+            ->add('price02', PriceType::class, [
+                'label' => 'productclass.label.sales_price',
+            ])
+            ->add('tax_rate', TextType::class, [
+                'label' => 'productclass.label.tax',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Range(array('min' => 0, 'max' => 100)),
-                    new Assert\Regex(array(
+                'constraints' => [
+                    new Assert\Range(['min' => 0, 'max' => 100]),
+                    new Assert\Regex([
                         'pattern' => "/^\d+(\.\d+)?$/",
-                        'message' => 'form.type.float.invalid'
-                    )),
-                ),
-            ))
-            ->add('delivery_fee', 'money', array(
-                'label' => '商品送料',
-                'currency' => 'JPY',
-                'precision' => 0,
-                'scale' => 0,
-                'grouping' => true,
+                        'message' => 'form.type.float.invalid',
+                    ]),
+                ],
+            ])
+            ->add('delivery_fee', PriceType::class, [
+                'label' => 'productclass.label.shipping_charge',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Regex(array(
-                        'pattern' => "/^\d+$/u",
-                        'message' => 'form.type.numeric.invalid'
-                    )),
-                ),
-            ))
-            ->add('product_type', 'product_type', array(
-                'label' => '商品種別',
+            ])
+            ->add('sale_type', SaleTypeType::class, [
+                'label' => 'productclass.label.sales_type',
                 'multiple' => false,
                 'expanded' => false,
-                'constraints' => array(
+                'constraints' => [
                     new Assert\NotBlank(),
-                ),
-            ))
-            ->add('delivery_date', 'delivery_date', array(
-                'label' => 'お届け可能日',
+                ],
+            ])
+            ->add('delivery_duration', DeliveryDurationType::class, [
+                'label' => 'productclass.label.delivery_date',
                 'required' => false,
-                'empty_value' => '指定なし',
-            ))
-            ->add('add', 'checkbox', array(
-                'label' => false,
-                'required' => false,
-                'value' => 1,
-            ))
+                'placeholder' => 'productclass.placeholder.not_specified',
+            ])
             ->addEventListener(FormEvents::POST_SUBMIT, function ($event) {
                 $form = $event->getForm();
                 $data = $form->getData();
 
                 if (empty($data['stock_unlimited']) && is_null($data['stock'])) {
-                    $form['stock_unlimited']->addError(new FormError('在庫数を入力、もしくは在庫無制限を設定してください。'));
+                    $form['stock_unlimited']->addError(new FormError(trans('productclass.text.error.set_stock_quantitiy')));
                 }
             });
 
-        $transformer = new DataTransformer\IntegerToBooleanTransformer();
-
+        $transformer = new DataTransformer\EntityToIdTransformer($this->entityManager, ClassCategory::class);
         $builder
-            ->add($builder->create('stock_unlimited', 'checkbox', array(
-                'label' => '無制限',
-                'value' => '1',
-                'required' => false,
-            ))->addModelTransformer($transformer));
-
-
-        $transformer = new DataTransformer\EntityToIdTransformer(
-            $app['orm.em'],
-            '\Eccube\Entity\ClassCategory'
-        );
-        $builder
-            ->add($builder->create('ClassCategory1', 'hidden')
+            ->add($builder->create('ClassCategory1', HiddenType::class)
                 ->addModelTransformer($transformer)
             )
-            ->add($builder->create('ClassCategory2', 'hidden')
+            ->add($builder->create('ClassCategory2', HiddenType::class)
                 ->addModelTransformer($transformer)
             );
     }
@@ -192,17 +151,17 @@ class ProductClassType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults(array(
+        $resolver->setDefaults([
             'data_class' => 'Eccube\Entity\ProductClass',
-        ));
+        ]);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'admin_product_class';
     }

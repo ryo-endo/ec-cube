@@ -1,33 +1,28 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
-use Eccube\Util\EntityUtil;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * ClassName
+ *
+ * @ORM\Table(name="dtb_class_name")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\ClassNameRepository")
  */
 class ClassName extends \Eccube\Entity\AbstractEntity
 {
@@ -40,42 +35,66 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="backend_name", type="string", length=255, nullable=true)
+     */
+    private $backend_name;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="name", type="string", length=255)
      */
     private $name;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="sort_no", type="integer")
      */
-    private $rank;
+    private $sort_no;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
     /**
-     * @var integer
-     */
-    private $del_flg;
-
-    /**
      * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\ClassCategory", mappedBy="ClassName")
+     * @ORM\OrderBy({
+     *     "sort_no"="DESC"
+     * })
      */
     private $ClassCategories;
 
     /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
@@ -88,9 +107,9 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -98,9 +117,34 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set name
+     * Set backend_name.
      *
-     * @param  string    $name
+     * @param string $backend_name
+     *
+     * @return ClassName
+     */
+    public function setBackendName($backendName)
+    {
+        $this->backend_name = $backendName;
+
+        return $this;
+    }
+
+    /**
+     * Get backend_name.
+     *
+     * @return string
+     */
+    public function getBackendName()
+    {
+        return $this->backend_name;
+    }
+
+    /**
+     * Set name.
+     *
+     * @param string $name
+     *
      * @return ClassName
      */
     public function setName($name)
@@ -111,7 +155,7 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get name
+     * Get name.
      *
      * @return string
      */
@@ -121,32 +165,34 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set rank
+     * Set sortNo.
      *
-     * @param  integer   $rank
+     * @param int $sortNo
+     *
      * @return ClassName
      */
-    public function setRank($rank)
+    public function setSortNo($sortNo)
     {
-        $this->rank = $rank;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get rank
+     * Get sortNo.
      *
-     * @return integer
+     * @return int
      */
-    public function getRank()
+    public function getSortNo()
     {
-        return $this->rank;
+        return $this->sort_no;
     }
 
     /**
-     * Set create_date
+     * Set createDate.
      *
-     * @param  \DateTime $createDate
+     * @param \DateTime $createDate
+     *
      * @return ClassName
      */
     public function setCreateDate($createDate)
@@ -157,7 +203,7 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -167,9 +213,10 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
-     * @param  \DateTime $updateDate
+     * @param \DateTime $updateDate
+     *
      * @return ClassName
      */
     public function setUpdateDate($updateDate)
@@ -180,7 +227,7 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -190,53 +237,33 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set del_flg
+     * Add classCategory.
      *
-     * @param  integer   $delFlg
+     * @param \Eccube\Entity\ClassCategory $classCategory
+     *
      * @return ClassName
      */
-    public function setDelFlg($delFlg)
+    public function addClassCategory(\Eccube\Entity\ClassCategory $classCategory)
     {
-        $this->del_flg = $delFlg;
+        $this->ClassCategories[] = $classCategory;
 
         return $this;
     }
 
     /**
-     * Get del_flg
+     * Remove classCategory.
      *
-     * @return integer
+     * @param \Eccube\Entity\ClassCategory $classCategory
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function getDelFlg()
+    public function removeClassCategory(\Eccube\Entity\ClassCategory $classCategory)
     {
-        return $this->del_flg;
+        return $this->ClassCategories->removeElement($classCategory);
     }
 
     /**
-     * Add ClassCategories
-     *
-     * @param  \Eccube\Entity\ClassCategory $classCategories
-     * @return ClassName
-     */
-    public function addClassCategory(\Eccube\Entity\ClassCategory $classCategories)
-    {
-        $this->ClassCategories[] = $classCategories;
-
-        return $this;
-    }
-
-    /**
-     * Remove ClassCategories
-     *
-     * @param \Eccube\Entity\ClassCategory $classCategories
-     */
-    public function removeClassCategory(\Eccube\Entity\ClassCategory $classCategories)
-    {
-        $this->ClassCategories->removeElement($classCategories);
-    }
-
-    /**
-     * Get ClassCategories
+     * Get classCategories.
      *
      * @return \Doctrine\Common\Collections\Collection
      */
@@ -246,12 +273,13 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set creator.
      *
-     * @param  \Eccube\Entity\Member $creator
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return ClassName
      */
-    public function setCreator(\Eccube\Entity\Member $creator)
+    public function setCreator(\Eccube\Entity\Member $creator = null)
     {
         $this->Creator = $creator;
 
@@ -259,15 +287,12 @@ class ClassName extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Creator
+     * Get creator.
      *
-     * @return \Eccube\Entity\Member
+     * @return \Eccube\Entity\Member|null
      */
     public function getCreator()
     {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
         return $this->Creator;
     }
 }

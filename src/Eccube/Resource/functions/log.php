@@ -3,27 +3,16 @@
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 if (!function_exists('log_emergency')) {
-    function log_emergency($message, array $context = array())
+    function log_emergency($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -33,7 +22,7 @@ if (!function_exists('log_emergency')) {
 }
 
 if (!function_exists('log_alert')) {
-    function log_alert($message, array $context = array())
+    function log_alert($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -43,7 +32,7 @@ if (!function_exists('log_alert')) {
 }
 
 if (!function_exists('log_critical')) {
-    function log_critical($message, array $context = array())
+    function log_critical($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -53,7 +42,7 @@ if (!function_exists('log_critical')) {
 }
 
 if (!function_exists('log_error')) {
-    function log_error($message, array $context = array())
+    function log_error($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -63,7 +52,7 @@ if (!function_exists('log_error')) {
 }
 
 if (!function_exists('log_warning')) {
-    function log_warning($message, array $context = array())
+    function log_warning($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -73,7 +62,7 @@ if (!function_exists('log_warning')) {
 }
 
 if (!function_exists('log_notice')) {
-    function log_notice($message, array $context = array())
+    function log_notice($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -83,7 +72,7 @@ if (!function_exists('log_notice')) {
 }
 
 if (!function_exists('log_info')) {
-    function log_info($message, array $context = array())
+    function log_info($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {
@@ -93,7 +82,7 @@ if (!function_exists('log_info')) {
 }
 
 if (!function_exists('log_debug')) {
-    function log_debug($message, array $context = array())
+    function log_debug($message, array $context = [])
     {
         $app = \Eccube\Application::getInstance();
         if (isset($app['eccube.logger'])) {

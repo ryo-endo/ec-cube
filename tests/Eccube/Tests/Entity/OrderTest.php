@@ -1,10 +1,31 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Tests\Entity;
 
-use Eccube\Common\Constant;
+use Eccube\Entity\Customer;
+use Eccube\Entity\Master\OrderItemType;
+use Eccube\Entity\Master\OrderStatus;
 use Eccube\Entity\Order;
+use Eccube\Entity\OrderItem;
+use Eccube\Entity\Product;
+use Eccube\Entity\ProductClass;
+use Eccube\Entity\Shipping;
+use Eccube\Repository\Master\OrderStatusRepository;
+use Eccube\Repository\Master\SaleTypeRepository;
+use Eccube\Repository\TaxRuleRepository;
 use Eccube\Tests\EccubeTestCase;
+use Eccube\Tests\Fixture\Generator;
 
 /**
  * AbstractEntity test cases.
@@ -13,7 +34,9 @@ use Eccube\Tests\EccubeTestCase;
  */
 class OrderTest extends EccubeTestCase
 {
+    /** @var Customer */
     protected $Customer;
+    /** @var Order */
     protected $Order;
     protected $rate;
 
@@ -22,13 +45,13 @@ class OrderTest extends EccubeTestCase
         parent::setUp();
         $this->Customer = $this->createCustomer();
         $this->Order = $this->createOrder($this->Customer);
-        $TaxRule = $this->app['eccube.repository.tax_rule']->getByRule();
+        $TaxRule = $this->container->get(TaxRuleRepository::class)->getByRule();
         $this->rate = $TaxRule->getTaxRate();
     }
 
     public function testConstructor()
     {
-        $OrderStatus = $this->app['eccube.repository.order_status']->find($this->app['config']['order_processing']);
+        $OrderStatus = $this->container->get(OrderStatusRepository::class)->find(OrderStatus::PROCESSING);
         $Order = new Order($OrderStatus);
 
         $this->expected = 0;
@@ -55,7 +78,6 @@ class OrderTest extends EccubeTestCase
         $this->verify();
 
         $this->assertSame($OrderStatus, $Order->getOrderStatus());
-        $this->assertSame(Constant::DISABLED, $Order->getDelFlg());
     }
 
     public function testConstructor2()
@@ -86,90 +108,76 @@ class OrderTest extends EccubeTestCase
         $this->verify();
 
         $this->assertNull($Order->getOrderStatus());
-        $this->assertSame(Constant::DISABLED, $Order->getDelFlg());
     }
 
-    public function testGetSubTotal()
+    public function testGetSaleTypes()
     {
-        $quantity = 3;
-        $price = 100;
-        $rows = count($this->Order->getOrderDetails());
-
-        $subTotal = 0;
-        foreach ($this->Order->getOrderDetails() as $Detail) {
-            $Detail->setPrice($price);
-            $Detail->setQuantity($quantity);
-            $subTotal = $Detail->getPriceIncTax() * $Detail->getQuantity();
-        }
-        $this->Order->setSubTotal($subTotal);
-        $this->app['orm.em']->flush();
-
-        $Result = $this->app['eccube.repository.order']->find($this->Order->getId());
-
-        $this->expected = ($price + ($price * ($this->rate / 100))) * $quantity * $rows;
-        $this->actual = $Result->calculateSubTotal();
-        $this->verify();
-    }
-
-    public function testGetTotalQuantity()
-    {
-        $quantity = 3;
-        $rows = count($this->Order->getOrderDetails());
-
-        $total = 0;
-        foreach ($this->Order->getOrderDetails() as $Detail) {
-            $Detail->setQuantity($quantity);
-            $total += $Detail->getQuantity();
-        }
-        $this->app['orm.em']->flush();
-
-        $Result = $this->app['eccube.repository.order']->find($this->Order->getId());
-
-        $this->expected = $total;
-        $this->actual = $Result->calculateTotalQuantity();
-        $this->verify();
-    }
-
-    public function testGetTotalTax()
-    {
-        $quantity = 3;
-        $price = 100;
-        $rows = count($this->Order->getOrderDetails());
-
-        $totalTax = 0;
-        foreach ($this->Order->getOrderDetails() as $Detail) {
-            $Detail->setPrice($price);
-            $Detail->setQuantity($quantity);
-            $totalTax += ($Detail->getPriceIncTax() - $Detail->getPrice()) * $Detail->getQuantity();
-        }
-        $this->app['orm.em']->flush();
-
-        $Result = $this->app['eccube.repository.order']->find($this->Order->getId());
-
-        $this->expected = ($price * ($this->rate / 100)) * $quantity * $rows;
-        $this->actual = $Result->calculateTotalTax();
-        $this->verify();
-    }
-
-    public function testGetProductTypes()
-    {
-        $this->expected = array($this->app['eccube.repository.master.product_type']->find(1));
-        $this->actual = $this->Order->getProductTypes();
+        $this->expected = [$this->container->get(SaleTypeRepository::class)->find(1)];
+        $this->actual = $this->Order->getSaleTypes();
         $this->verify();
     }
 
     public function testGetTotalPrice()
     {
         $faker = $this->getFaker();
-        $Order = $this->app['eccube.fixture.generator']->createOrder(
+        /** @var Order $Order */
+        $Order = $this->container->get(Generator::class)->createOrder(
             $this->Customer,
-            array(),
+            [],
             null,
             $faker->randomNumber(5),
             $faker->randomNumber(5)
         );
         $this->expected = $Order->getSubTotal() + $Order->getCharge() + $Order->getDeliveryFeeTotal() - $Order->getDiscount();
         $this->actual = $Order->getTotalPrice();
+        $this->verify();
+    }
+
+    public function testGetMergedProductOrderItems()
+    {
+        $quantity = '5';    // 配送先あたりの商品の個数
+        $times = '2';       // 複数配送の配送先数
+
+        // テストデータの準備
+        $Product = new Product();
+        $ProductClass = new ProductClass();
+        $Order = new Order();
+        $ItemProduct = $this->entityManager->find(OrderItemType::class, OrderItemType::PRODUCT);
+
+        foreach (range(1, $times) as $i) {
+            $Shipping = new Shipping();
+            $Shipping->setOrder($Order);
+            $Order->addShipping($Shipping);
+
+            $OrderItem = new OrderItem();
+            $OrderItem->setShipping($Shipping)
+                ->setOrder($Order)
+                ->setProduct($Product)
+                ->setProductName('name')
+                ->setPriceIncTax('1000')
+                ->setQuantity($quantity)
+                ->setProductClass($ProductClass)
+                ->setClassCategoryName1('name1')
+                ->setClassCategoryName2('name2')
+                ->setOrderItemType($ItemProduct)
+            ;
+            $Shipping->addOrderItem($OrderItem);
+            $Order->addOrderItem($OrderItem);
+        }
+
+        // 実行
+        $OrderItems = $Order->getMergedProductOrderItems();
+
+        // 2個目の明細が1個にまとめられているか
+        $this->expected = 1;
+        $this->actual = count($OrderItems);
+        $this->verify();
+
+        // まとめられた明細の商品の個数が全配送先の合計になっているか
+        $OrderItem = $OrderItems[0];
+
+        $this->expected = $quantity * $times;
+        $this->actual = $OrderItem->getQuantity();
         $this->verify();
     }
 }

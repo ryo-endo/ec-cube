@@ -1,43 +1,48 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Tests\Web\Admin\Setting\Shop;
 
-use Eccube\Common\Constant;
+use Eccube\Entity\Payment;
+use Eccube\Repository\PaymentRepository;
 use Eccube\Tests\Web\Admin\AbstractAdminWebTestCase;
 
 class PaymentControllerTest extends AbstractAdminWebTestCase
 {
+    /**
+     * @var PaymentRepository
+     */
+    protected $paymentRepository;
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setUp()
+    {
+        parent::setUp();
+
+        $this->paymentRepository = $this->container->get(PaymentRepository::class);
+    }
+
     public function testRouting()
     {
-        $this->client->request('GET', $this->app->url('admin_setting_shop_payment'));
+        $this->client->request('GET', $this->generateUrl('admin_setting_shop_payment'));
         $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
 
     public function testRoutingNew()
     {
-        $this->client->request('GET', $this->app->url('admin_setting_shop_payment_new'));
+        $this->client->request('GET', $this->generateUrl('admin_setting_shop_payment_new'));
         $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
 
@@ -53,12 +58,13 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
             $formData['method'] = '';
         }
 
-        $this->client->request('POST',
-            $this->app->url('admin_setting_shop_payment_new'),
-            array(
-                'payment_register' => $formData
-            )
+        $crawler = $this->client->request('POST',
+            $this->generateUrl('admin_setting_shop_payment_new'),
+            [
+                'payment_register' => $formData,
+            ]
         );
+
         $this->expected = $expected;
         $this->actual = $this->client->getResponse()->isRedirection();
         $this->verify();
@@ -66,8 +72,8 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
 
     public function testRoutingEdit()
     {
-        $Payment = $this->app['eccube.repository.payment']->find(1);
-        $this->client->request('GET', $this->app->url('admin_setting_shop_payment_edit', array('id' => $Payment->getId())));
+        $Payment = $this->paymentRepository->find(1);
+        $this->client->request('GET', $this->generateUrl('admin_setting_shop_payment_edit', ['id' => $Payment->getId()]));
         $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
 
@@ -83,13 +89,13 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
             $formData['method'] = '';
         }
 
-        $Payment = $this->app['eccube.repository.payment']->find(1);
+        $Payment = $this->paymentRepository->find(1);
 
         $this->client->request('POST',
-            $this->app->url('admin_setting_shop_payment_edit', array('id' => $Payment->getId())),
-            array(
-                'payment_register' => $formData
-            )
+            $this->generateUrl('admin_setting_shop_payment_edit', ['id' => $Payment->getId()]),
+            [
+                'payment_register' => $formData,
+            ]
         );
         $this->expected = $expected;
         $this->actual = $this->client->getResponse()->isRedirection();
@@ -98,47 +104,50 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
 
     public function testDeleteSuccess()
     {
-        $pid = 1;
+        $Member = $this->createMember();
+        $Payment = new Payment();
+        $Payment->setMethod('testDeleteSuccess')
+            ->setCharge(0)
+            ->setRuleMin(0)
+            ->setRuleMax(9999)
+            ->setCreator($Member)
+            ->setVisible(true);
+
+        $this->entityManager->persist($Payment);
+        $this->entityManager->flush();
+
+        $pid = $Payment->getId();
         $this->client->request('DELETE',
-            $this->app->url('admin_setting_shop_payment_delete', array('id' => $pid))
+            $this->generateUrl('admin_setting_shop_payment_delete', ['id' => $pid])
         );
 
         $this->assertTrue($this->client->getResponse()->isRedirection());
 
-        $Payment = $this->app['eccube.repository.payment']->find($pid);
-        $this->actual = $Payment->getDelFlg();
-        $this->expected = Constant::ENABLED;
-        $this->verify();
+        $Payment = $this->paymentRepository->find($pid);
+        $this->assertNull($Payment);
     }
 
-    public function testDeleteFail()
+    public function testDeleteFail_NotFound()
     {
         $pid = 9999;
         $this->client->request(
             'DELETE',
-            $this->app->url('admin_setting_shop_payment_delete', array('id' => $pid))
+            $this->generateUrl('admin_setting_shop_payment_delete', ['id' => $pid])
         );
-
-        $this->assertTrue($this->client->getResponse()->isRedirection());
-
-        $outPut = $this->app['session']->getFlashBag()->get('eccube.admin.warning');
-        $this->actual = array_shift($outPut);
-        $this->expected = 'admin.delete.warning';
-        $this->verify();
+        $this->assertSame(404, $this->client->getResponse()->getStatusCode());
     }
 
     public function testUp()
     {
         $pid = 4;
-        $Payment = $this->app['eccube.repository.payment']->find($pid);
-        $before = $Payment->getRank();
+        $Payment = $this->paymentRepository->find($pid);
+        $before = $Payment->getSortNo();
         $this->client->request('PUT',
-            $this->app->url('admin_setting_shop_payment_up', array('id' => $pid))
+            $this->generateUrl('admin_setting_shop_payment_up', ['id' => $pid])
         );
-
         $this->assertTrue($this->client->getResponse()->isRedirection());
 
-        $after = $Payment->getRank();
+        $after = $Payment->getSortNo();
         $this->actual = $after;
         $this->expected = $before + 1;
         $this->verify();
@@ -147,15 +156,15 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
     public function testDown()
     {
         $pid = 1;
-        $Payment = $this->app['eccube.repository.payment']->find($pid);
-        $before = $Payment->getRank();
+        $Payment = $this->paymentRepository->find($pid);
+        $before = $Payment->getSortNo();
         $this->client->request('PUT',
-            $this->app->url('admin_setting_shop_payment_down', array('id' => $pid))
+            $this->generateUrl('admin_setting_shop_payment_down', ['id' => $pid])
         );
 
         $this->assertTrue($this->client->getResponse()->isRedirection());
 
-        $after = $Payment->getRank();
+        $after = $Payment->getSortNo();
         $this->actual = $after;
         $this->expected = $before - 1;
         $this->verify();
@@ -166,52 +175,88 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
         $formData = $this->createFormData();
 
         $this->client->request('POST',
-            $this->app->url('admin_payment_image_add'),
-            array(
-                'payment_register' => $formData
-            ),
-            array(),
-            array(
+            $this->generateUrl('admin_payment_image_add'),
+            [
+                'payment_register' => $formData,
+            ],
+            [],
+            [
                 'HTTP_X-Requested-With' => 'XMLHttpRequest',
-            )
+            ]
         );
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
 
-    /**
-     * @expectedException Symfony\Component\HttpKernel\Exception\BadRequestHttpException
-     */
     public function testAddImage_NotAjax()
     {
         $formData = $this->createFormData();
 
         $this->client->request('POST',
-            $this->app->url('admin_payment_image_add'),
-            array(
-                'payment_register' => $formData
-            ),
-            array()
+            $this->generateUrl('admin_payment_image_add'),
+            [
+                'payment_register' => $formData,
+            ],
+            []
         );
+        $this->assertSame(400, $this->client->getResponse()->getStatusCode());
     }
 
+    //    public function testAddImage_MineNotSupported()
+    //    {
+    //        $formData = $this->createFormData();
+    //
+    //        $formData['payment_image'] = 'abc.avi';
+    //        $formData['payment_image_file'] = 'abc.avi';
+    //
+    //        $this->client->request('POST',
+    //            $this->app->url('admin_payment_image_add'),
+    //            array(
+    //                'payment_register' => $formData
+    //            ),
+    //            array(),
+    //            array(
+    //                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+    //            )
+    //        );
+    //    }
 
-//    public function testAddImage_MineNotSupported()
-//    {
-//        $formData = $this->createFormData();
-//
-//        $formData['payment_image'] = 'abc.avi';
-//        $formData['payment_image_file'] = 'abc.avi';
-//
-//        $this->client->request('POST',
-//            $this->app->url('admin_payment_image_add'),
-//            array(
-//                'payment_register' => $formData
-//            ),
-//            array(),
-//            array(
-//                'HTTP_X-Requested-With' => 'XMLHttpRequest',
-//            )
-//        );
-//    }
+    public function testMoveSortNo()
+    {
+        /** @var Payment[] $Payments */
+        $Payments = $this->paymentRepository->findBy([], ['sort_no' => 'DESC']);
+
+        $this->expected = [];
+        foreach ($Payments as $Payment) {
+            $this->expected[$Payment->getId()] = $Payment->getSortNo();
+        }
+
+        // swap sort_no
+        reset($this->expected);
+        $firstKey = key($this->expected);
+        end($this->expected);
+        $lastKey = key($this->expected);
+
+        $tmp = $this->expected[$firstKey];
+        $this->expected[$firstKey] = $this->expected[$lastKey];
+        $this->expected[$lastKey] = $tmp;
+
+        $this->client->request('POST',
+            $this->generateUrl('admin_setting_shop_payment_sort_no_move'),
+            $this->expected,
+            [],
+            ['HTTP_X-Requested-With' => 'XMLHttpRequest']
+        );
+
+        $Payments = $this->paymentRepository->findBy([], ['sort_no' => 'DESC']);
+        $this->actual = [];
+        foreach ($Payments as $Payment) {
+            $this->actual[$Payment->getId()] = $Payment->getSortNo();
+        }
+        sort($this->expected);
+        sort($this->actual);
+
+        $this->verify();
+    }
 
     public function createFormData()
     {
@@ -225,7 +270,7 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
             $rule_max = number_format($rule_max);
         }
 
-        $form = array(
+        $form = [
             '_token' => 'dummy',
             'method' => 'Test',
             'charge' => $charge,
@@ -233,19 +278,21 @@ class PaymentControllerTest extends AbstractAdminWebTestCase
             'rule_max' => $rule_max,
             'payment_image' => 'abc.png',
             'payment_image_file' => 'abc.png',
-            'charge_flg' => '1',
-            'fix_flg' => '1'
-        );
+            'visible' => true,
+            'fixed' => true,
+        ];
+
         return $form;
     }
 
     public function dataSubmitProvider()
     {
-        return array(
-            array(false, false),
-            array(true, true),
+        return [
+            [false, false],
+            [true, true],
             // To do implement
-        );
+        ];
     }
+
     //    TO DO : implement
 }

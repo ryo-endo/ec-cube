@@ -1,67 +1,67 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Tests\Web;
 
+use Eccube\Entity\Master\OrderStatus;
+use Eccube\Repository\BaseInfoRepository;
+use Eccube\Repository\PaymentRepository;
+use Eccube\Repository\Master\OrderStatusRepository;
+use Eccube\Repository\OrderRepository;
 use Symfony\Component\DomCrawler\Crawler;
 
 class ShoppingControllerTest extends AbstractShoppingControllerTestCase
 {
+    /**
+     * @var BaseInfoRepository
+     */
+    private $baseInfoRepository;
+
+    /**
+     * @var PaymentRepository
+     */
+    private $paymentRepository;
+
+    public function setUp()
+    {
+        parent::setUp();
+        $this->baseInfoRepository = $this->container->get(BaseInfoRepository::class);
+        $this->paymentRepository = $this->container->get(PaymentRepository::class);
+    }
 
     public function testRoutingShoppingLogin()
     {
-        $client = $this->client;
-        $crawler = $client->request('GET', '/shopping/login');
-        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('cart')));
-    }
-
-    public function testShoppingIndexWithCartUnlock()
-    {
-        $this->app['eccube.service.cart']->unlock();
-
-        $client = $this->createClient();
-        $crawler = $client->request('GET', $this->app->path('shopping'));
-
-        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('cart')));
+        $crawler = $this->client->request('GET', '/shopping/login');
+        $this->expected = 'ログイン';
+        $this->actual = $crawler->filter('.ec-pageHeader h1')->text();
+        $this->verify();
     }
 
     public function testComplete()
     {
-        $this->app['session']->set('eccube.front.shopping.order.id', 111);
+        $Customer = $this->createCustomer();
+        $Order = $this->createOrder($Customer);
+        $this->container->get('session')->set('eccube.front.shopping.order.id', $Order->getId());
+        $this->client->request('GET', $this->generateUrl('shopping_complete'));
 
-        $client = $this->createClient();
-        $crawler = $client->request('GET', $this->app->path('shopping_complete'));
-
-        $this->assertTrue($client->getResponse()->isSuccessful());
-        $this->assertNull($this->app['session']->get('eccube.front.shopping.order.id'));
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
+        $this->assertNull($this->container->get('session')->get('eccube.front.shopping.order.id'));
     }
 
     public function testShoppingError()
     {
-        $client = $this->createClient();
-        $crawler = $client->request('GET', $this->app->path('shopping_error'));
-        $this->assertTrue($client->getResponse()->isSuccessful());
+        $this->client->request('GET', $this->generateUrl('shopping_error'));
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
 
     /**
@@ -69,38 +69,44 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testCompleteWithLogin()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
+
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
+
+        // 手続き画面
+        $crawler = $this->scenarioConfirm($Customer);
+        $this->expected = 'ご注文手続き';
+        $this->actual = $crawler->filter('.ec-pageHeader h1')->text();
+        $this->verify();
 
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $crawler = $this->scenarioComplete($Customer, $this->generateUrl('shopping_confirm'));
         $this->expected = 'ご注文内容のご確認';
-        $this->actual = $crawler->filter('h1.page-heading')->text();
+        $this->actual = $crawler->filter('.ec-pageHeader h1')->text();
         $this->verify();
 
         // 完了画面
-        $crawler = $this->scenarioComplete($client, $this->app->path('shopping_confirm'));
-        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('shopping_complete')));
+        $crawler = $this->scenarioComplete($Customer, $this->generateUrl('shopping_order'));
+        $this->assertTrue($this->client->getResponse()->isRedirect($this->generateUrl('shopping_complete')));
 
-        $BaseInfo = $this->app['eccube.repository.base_info']->get();
-        $Messages = $this->getMailCatcherMessages();
-        $Message = $this->getMailCatcherMessage($Messages[0]->id);
+        $BaseInfo = $this->baseInfoRepository->get();
+        $mailCollector = $this->getMailCollector(false);
+        $Messages = $mailCollector->getMessages();
+        $Message = $Messages[0];
 
-        $this->expected = '[' . $BaseInfo->getShopName() . '] ご注文ありがとうございます';
-        $this->actual = $Message->subject;
+        $this->expected = '['.$BaseInfo->getShopName().'] ご注文ありがとうございます';
+        $this->actual = $Message->getSubject();
         $this->verify();
 
         // 生成された受注のチェック
-        $Order = $this->app['eccube.repository.order']->findOneBy(
-            array(
-                'Customer' => $Customer
-            )
+        $Order = $this->container->get(OrderRepository::class)->findOneBy(
+            [
+                'Customer' => $Customer,
+            ]
         );
 
-        $OrderNew = $this->app['eccube.repository.order_status']->find($this->app['config']['order_new']);
+        $OrderNew = $this->container->get(OrderStatusRepository::class)->find(OrderStatus::NEW);
         $this->expected = $OrderNew;
         $this->actual = $Order->getOrderStatus();
         $this->verify();
@@ -115,22 +121,22 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testDeliveryWithNotInput()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
+
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $this->scenarioConfirm($Customer);
 
         // お届け先指定画面
-        $crawler = $client->request(
-            'POST',
-            $this->app->path('shopping_delivery')
-        );
+        $token = $this->getCsrfToken('_shopping_order');
+        $this->scenarioRedirectTo($Customer, [
+            'shopping_order_mode' => 'delivery',
+            '_token' => $token,
+        ]);
 
-        $this->assertTrue($client->getResponse()->isSuccessful());
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
 
     /**
@@ -138,36 +144,32 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testDeliveryWithPost()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
 
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $this->scenarioConfirm($Customer);
 
         // お届け先指定画面
-        $crawler = $client->request(
-            'POST',
-            $this->app->path('shopping_delivery'),
-            array(
-                'shopping' => array(
-                    'shippings' => array(
-                        0 => array(
-                            'delivery' => 1,
-                            'deliveryTime' => 1
-                        ),
-                    ),
-                    'payment' => 1,
-                    'message' => $faker->text(),
-                    '_token' => 'dummy'
-                )
-            )
-        );
+        $token = $this->getCsrfToken('_shopping_order');
+        $this->scenarioRedirectTo($Customer, [
+            '_shopping_order' => [
+                'Shippings' => [
+                    0 => [
+                        'Delivery' => 1,
+                        'DeliveryTime' => 1,
+                    ],
+                ],
+                'Payment' => 1,
+                'message' => $this->getFaker()->realText(),
+                '_token' => $token,
+            ],
+            ['shopping_order_mode' => 'delivery'],
+        ]);
 
-        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('shopping')));
+        $this->assertTrue($this->client->getResponse()->isRedirect($this->generateUrl('shopping')));
     }
 
     /**
@@ -175,37 +177,34 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testDeliveryWithError()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
+
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $this->scenarioConfirm($Customer);
 
         // お届け先指定
-        $crawler = $client->request(
-            'POST',
-            $this->app->path('shopping_delivery'),
-            array(
-                'shopping' => array(
-                    'shippings' => array(
-                        0 => array(
-                            'delivery' => 5, // delivery=5 は無効な値
-                            'deliveryTime' => 1
-                        ),
-                    ),
-                    'payment' => 1,
-                    'message' => $faker->text(),
-                    '_token' => 'dummy'
-                )
-            )
-        );
+        $token = $this->getCsrfToken('_shopping_order');
+        $crawler = $this->scenarioRedirectTo($Customer, [
+            '_shopping_order' => [
+                'Shippings' => [
+                    0 => [
+                        'Delivery' => 5, // delivery=5 は無効な値
+                        'DeliveryTime' => 1,
+                    ],
+                ],
+                'Payment' => 1,
+                'message' => $this->getFaker()->realText(),
+                '_token' => $token,
+            ],
+            ['shopping_order_mode' => 'delivery'],
+        ]);
 
-        $this->assertTrue($client->getResponse()->isSuccessful());
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
         $this->expected = '有効な値ではありません。';
-        $this->actual = $crawler->filter('p.errormsg')->text();
+        $this->actual = $crawler->filter('p.ec-errorMessage')->text();
         $this->verify();
     }
 
@@ -214,36 +213,32 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testPaymentWithPost()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
 
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $this->scenarioConfirm($Customer);
 
         // 支払い方法選択
-        $crawler = $client->request(
-            'POST',
-            $this->app->path('shopping_payment'),
-            array(
-                'shopping' => array(
-                    'shippings' => array(
-                        0 => array(
-                            'delivery' => 1,
-                            'deliveryTime' => 1
-                        ),
-                    ),
-                    'payment' => 1,
-                    'message' => $faker->text(),
-                    '_token' => 'dummy'
-                )
-            )
-        );
+        $token = $this->getCsrfToken('_shopping_order');
+        $this->scenarioRedirectTo($Customer, [
+            '_shopping_order' => [
+                'Shippings' => [
+                    0 => [
+                        'Delivery' => 1,
+                        'DeliveryTime' => 1,
+                    ],
+                ],
+                'Payment' => 1,
+                'message' => $this->getFaker()->realText(),
+                '_token' => $token,
+            ],
+            ['shopping_order_mode' => 'payment'],
+        ]);
 
-        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('shopping')));
+        $this->assertTrue($this->client->getResponse()->isRedirect($this->generateUrl('shopping')));
     }
 
     /**
@@ -251,33 +246,34 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testOrtderConfirmLayout()
     {
+        $this->markTestIncomplete('ShoppingController is not implemented.');
         $faker = $this->getFaker();
         $Customer = $this->logIn();
         $client = $this->client;
 
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $crawler = $this->scenarioConfirm($Customer);
 
         // 支払い方法選択
         $crawler = $client->request(
             'POST',
-            $this->app->path('shopping_payment'),
-            array(
-                'shopping' => array(
-                    'shippings' => array(
-                        0 => array(
+            $this->generateUrl('shopping_payment'),
+            [
+                'shopping' => [
+                    'shippings' => [
+                        0 => [
                             'delivery' => 1,
-                            'deliveryTime' => 1
-                        ),
-                    ),
+                            'deliveryTime' => 1,
+                        ],
+                    ],
                     'payment' => 0,
                     'message' => $faker->text(),
-                    '_token' => 'dummy'
-                )
-            )
+                    '_token' => 'dummy',
+                ],
+            ]
         );
         // レイアウトヘッダーの部分確認
         $this->expected = 'header';
@@ -300,36 +296,35 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testPaymentWithError()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
 
         // カート画面
-        $this->scenarioCartIn($client);
-        // 確認画面
-        $crawler = $this->scenarioConfirm($client);
-        // 支払い方法選択
-        $crawler = $client->request(
-            'POST',
-            $this->app->path('shopping_payment'),
-            array(
-                'shopping' => array(
-                    'shippings' => array(
-                        0 => array(
-                            'delivery' => 1,
-                            'deliveryTime' => 1
-                        ),
-                    ),
-                    'payment' => 100, // payment=100 は無効な値
-                    'message' => $faker->text(),
-                    '_token' => 'dummy'
-                )
-            )
-        );
+        $this->scenarioCartIn($Customer);
 
-        $this->assertTrue($client->getResponse()->isSuccessful());
+        // 確認画面
+        $this->scenarioConfirm($Customer);
+
+        // 支払い方法選択
+        $shoppingToken = $this->getCsrfToken('_shopping_order');
+        $this->loginTo($Customer);
+        $crawler = $this->scenarioRedirectTo($Customer, [
+            '_shopping_order' => [
+                'Shippings' => [
+                    0 => [
+                        'Delivery' => 1,
+                        'DeliveryTime' => 1,
+                    ],
+                ],
+                'Payment' => 100, // payment=100 は無効な値
+                'message' => $this->getFaker()->realText(),
+                '_token' => $shoppingToken,
+            ],
+            ['shopping_order_mode' => 'payment'],
+        ]);
+
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
         $this->expected = '有効な値ではありません。';
-        $this->actual = $crawler->filter('p.errormsg')->text();
+        $this->actual = $crawler->filter('p.ec-errorMessage')->text();
         $this->verify();
     }
 
@@ -338,26 +333,27 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testPaymentEmpty()
     {
+        $this->markTestIncomplete('ShoppingController is not implemented.');
         $faker = $this->getFaker();
         $Customer = $this->logIn();
         $client = $this->client;
 
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
         // 支払い方法のMINとMAXルール変更
-        $PaymentColl = $this->app['eccube.repository.payment']->findAll();
-        foreach($PaymentColl as $Payment){
-                $Payment->setRuleMin(0);
-                $Payment->setRuleMax(0);
+        $PaymentColl = $this->paymentRepository->findAll();
+        foreach ($PaymentColl as $Payment) {
+            $Payment->setRuleMin(0);
+            $Payment->setRuleMax(0);
         }
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $crawler = $this->scenarioConfirm($Customer);
 
-        $BaseInfo = $this->app['eccube.repository.base_info']->get();
+        $BaseInfo = $this->baseInfoRepository->get();
         $email02 = $BaseInfo->getEmail02();
         $this->assertTrue($client->getResponse()->isSuccessful());
-        $this->expected = '合計金額に対して可能な支払い方法がありません。' . $email02 . 'にお問い合わせ下さい。';
+        $this->expected = '合計金額に対して可能な支払い方法がありません。'.$email02.'にお問い合わせ下さい。';
         $this->actual = $crawler->filter('p.errormsg')->text();
         $this->verify();
     }
@@ -367,69 +363,53 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
      */
     public function testShippingChangeWithPost()
     {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
+        $Customer = $this->createCustomer();
+
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
+
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $crawler = $this->scenarioConfirm($Customer);
 
         // お届け先指定画面
-        $shipping_url = $crawler->filter('a.btn-shipping')->attr('href');
-        $crawler = $this->scenarioComplete($client, $shipping_url);
+        $token = $this->getCsrfToken('_shopping_order');
+        $shippingId = $crawler->filter('div.ec-orderDelivery__change > button')->attr('data-id');
+        $this->scenarioRedirectTo($Customer, [
+            '_shopping_order' => [
+                'Shippings' => [
+                    0 => [
+                        'Delivery' => 1,
+                        'DeliveryTime' => 1,
+                    ],
+                ],
+                'Payment' => 1,
+                'message' => $this->getFaker()->realText(),
+                'mode' => 'shipping_change',
+                'param' => $shippingId,
+                '_token' => $token,
+            ],
+        ]);
 
-        // /shipping/shipping_change/<id> から /shipping/shipping/<id> へリダイレクト
-        $shipping_url = str_replace('shipping_change', 'shipping', $shipping_url);
-        $this->assertTrue($client->getResponse()->isRedirect($shipping_url));
-    }
-
-    /**
-     * 購入確認画面→お届け先の設定→お届け先一覧
-     */
-    public function testShippingShipping()
-    {
-        $faker = $this->getFaker();
-        $Customer = $this->logIn();
-        $client = $this->client;
-        // カート画面
-        $this->scenarioCartIn($client);
-        // 確認画面
-        $crawler = $this->scenarioConfirm($client);
-        // お届け先指定画面
-        $shipping_url = $crawler->filter('a.btn-shipping')->attr('href');
-        $crawler = $this->scenarioComplete($client, $shipping_url);
-
-        $shipping_url = str_replace('shipping_change', 'shipping', $shipping_url);
-
-        // お届け先一覧
-        $crawler = $client->request(
-            'GET',
-            $shipping_url
-        );
-
-        $this->assertTrue($client->getResponse()->isSuccessful());
-
-        $this->expected = 'お届け先の指定';
-        $this->actual = $crawler->filter('h1.page-heading')->text();
-        $this->verify();
+        $this->assertTrue($this->client->getResponse()->isRedirect($this->generateUrl('shopping_shipping', ['id' => $shippingId])));
     }
 
     /**
      * 購入確認画面→お届け先の設定→お届け先追加→購入完了
      *
-     * @link https://github.com/EC-CUBE/ec-cube/issues/1305
+     * @see https://github.com/EC-CUBE/ec-cube/issues/1305
      */
     public function testShippingShippingPost()
     {
+        $this->markTestSkipped('新しい配送管理の実装が完了するまでスキップ');
+
         $faker = $this->getFaker();
         $Customer = $this->logIn();
         $client = $this->client;
 
         // カート画面
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
         // 確認画面
-        $crawler = $this->scenarioConfirm($client);
+        $crawler = $this->scenarioConfirm($Customer);
         // お届け先の設定
         $shipping_url = $crawler->filter('a.btn-shipping')->attr('href');
         $crawler = $this->scenarioComplete($client, $shipping_url);
@@ -459,48 +439,40 @@ class ShoppingControllerTest extends AbstractShoppingControllerTestCase
 
         // お届け先設定画面へ遷移し POST 送信
         $formData = $this->createShippingFormData();
-        $formData['tel'] = array(
-            'tel01' => 222,
-            'tel02' => 222,
-            'tel03' => 222,
-        );
-        $formData['fax'] = array(
-            'fax01' => 111,
-            'fax02' => 111,
-            'fax03' => 111,
-        );
-
+        $formData['phone_number'] = $faker->phoneNumber;
         $crawler = $client->request(
             'POST',
             $shipping_edit_url,
-            array('shopping_shipping' => $formData)
+            ['shopping_shipping' => $formData]
         );
 
-        $this->assertTrue($client->getResponse()->isRedirect($this->app->url('shopping')));
+        $this->assertTrue($client->getResponse()->isRedirect($this->generateUrl('shopping')));
 
         // ご注文完了
-        $this->scenarioComplete($client, $this->app->path('shopping_confirm'));
+        $this->scenarioComplete($client, $this->generateUrl('shopping_confirm'));
 
-        $BaseInfo = $this->app['eccube.repository.base_info']->get();
+        $BaseInfo = $this->baseInfoRepository->get();
         $Messages = $this->getMailCatcherMessages();
         $Message = $this->getMailCatcherMessage($Messages[0]->id);
 
         // https://github.com/EC-CUBE/ec-cube/issues/1305
-        $this->assertRegexp('/111-111-111/', $this->parseMailCatcherSource($Message), '変更した FAX 番号が一致するか');
         $this->assertRegexp('/222-222-222/', $this->parseMailCatcherSource($Message), '変更した 電話番号が一致するか');
     }
 
     /**
-     * @link https://github.com/EC-CUBE/ec-cube/issues/1280
+     * @see https://github.com/EC-CUBE/ec-cube/issues/1280
      */
     public function testShippingEditTitle()
     {
+        // FIXME ShoppingController の登録チェックが実装されたら有効にする
+        $this->markTestIncomplete('ShoppingController is not implemented.');
+        $Customer = $this->createCustomer();
         $this->logIn();
         $client = $this->client;
-        $this->scenarioCartIn($client);
+        $this->scenarioCartIn($Customer);
 
-        /** @var $crawler Crawler*/
-        $crawler = $this->scenarioConfirm($client);
+        /** @var $crawler Crawler */
+        $crawler = $this->scenarioConfirm($Customer);
         $this->expected = 'ご注文内容のご確認';
         $this->actual = $crawler->filter('h1.page-heading')->text();
         $this->verify();

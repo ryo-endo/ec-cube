@@ -1,13 +1,21 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Tests\Repository;
 
-use Eccube\Tests\EccubeTestCase;
-use Eccube\Application;
-use Eccube\Common\Constant;
-use Eccube\Entity\Customer;
 use Eccube\Entity\CustomerAddress;
-use Eccube\Entity\Master\CustomerStatus;
+use Eccube\Repository\CustomerAddressRepository;
+use Eccube\Tests\EccubeTestCase;
 
 /**
  * CustomerAddressRepository test cases.
@@ -18,15 +26,21 @@ class CustomerAddressRepositoryTest extends EccubeTestCase
 {
     protected $Customer;
 
+    /**
+     * @var CustomerAddressRepository
+     */
+    protected $customerAddress;
+
     public function setUp()
     {
         parent::setUp();
         $this->Customer = $this->createCustomer();
+        $this->customerAddress = $this->container->get(CustomerAddressRepository::class);
     }
 
     public function testFindOrCreateByCustomerAndId()
     {
-        $CustomerAddress = $this->app['eccube.repository.customer_address']->findOrCreateByCustomerAndId($this->Customer, null);
+        $CustomerAddress = $this->customerAddress->findOrCreateByCustomerAndId($this->Customer, null);
         $this->assertNotNull($CustomerAddress);
 
         $faker = $this->getFaker();
@@ -34,13 +48,13 @@ class CustomerAddressRepositoryTest extends EccubeTestCase
         $CustomerAddress
             ->setName01($faker->lastName)
             ->setName02($faker->firstName);
-        $this->app['orm.em']->persist($CustomerAddress);
-        $this->app['orm.em']->flush();
+        $this->entityManager->persist($CustomerAddress);
+        $this->entityManager->flush();
 
         $id = $CustomerAddress->getId();
         $this->assertNotNull($id);
 
-        $ExistsCustomerAddress = $this->app['eccube.repository.customer_address']->findOrCreateByCustomerAndId($this->Customer, $id);
+        $ExistsCustomerAddress = $this->customerAddress->findOrCreateByCustomerAndId($this->Customer, $id);
         $this->assertNotNull($ExistsCustomerAddress);
 
         $this->expected = $id;
@@ -52,7 +66,7 @@ class CustomerAddressRepositoryTest extends EccubeTestCase
     public function testFindOrCreateByCustomerAndIdWithException()
     {
         try {
-            $CustomerAddress = $this->app['eccube.repository.customer_address']->findOrCreateByCustomerAndId($this->Customer, 9999);
+            $this->customerAddress->findOrCreateByCustomerAndId($this->Customer, 9999);
             $this->fail();
         } catch (\Doctrine\ORM\NoResultException $e) {
             $this->expected = 'No result was found for query although at least one row was expected.';
@@ -61,19 +75,17 @@ class CustomerAddressRepositoryTest extends EccubeTestCase
         }
     }
 
-    public function testDeleteByCustomerAndId()
+    public function testDelete()
     {
-        $CustomerAddress = $this->app['eccube.repository.customer_address']->findOrCreateByCustomerAndId($this->Customer, null);
-        $this->app['orm.em']->persist($CustomerAddress);
-        $this->app['orm.em']->flush();
+        $CustomerAddress = new CustomerAddress();
+        $CustomerAddress->setCustomer($this->Customer);
+        $this->entityManager->persist($CustomerAddress);
+        $this->entityManager->flush();
 
-        $result = $this->app['eccube.repository.customer_address']->deleteByCustomerAndId($this->Customer, $CustomerAddress->getId());
-        $this->assertTrue($result);
-    }
+        $id = $CustomerAddress->getId();
+        $this->customerAddress->delete($CustomerAddress);
 
-    public function testDeleteByCustomerAndIdWithException()
-    {
-        $result = $this->app['eccube.repository.customer_address']->deleteByCustomerAndId($this->Customer, 9999);
-        $this->assertFalse($result);
+        $CustomerAddress = $this->customerAddress->find($id);
+        $this->assertNull($CustomerAddress);
     }
 }

@@ -1,13 +1,24 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\EventListener;
 
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Doctrine\ORM\Query;
+use Eccube\Doctrine\ORM\Tools\Pagination\CountWalker;
+use Eccube\Doctrine\ORM\Tools\Pagination\Paginator;
 use Knp\Component\Pager\Event\ItemsEvent;
 use Knp\Component\Pager\Event\Subscriber\Paginate\Doctrine\ORM\QuerySubscriber;
-use Doctrine\ORM\Query;
-use Eccube\Doctrine\ORM\Tools\Pagination\Paginator;
-use Eccube\Doctrine\ORM\Tools\Pagination\CountWalker;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class PaginatorListener implements EventSubscriberInterface
 {
@@ -51,8 +62,8 @@ class PaginatorListener implements EventSubscriberInterface
 
     public static function getSubscribedEvents()
     {
-        return array(
-            /**
+        return [
+            /*
              * Knp\Component\Pager\Event\Subscriber\Paginate\Doctrine\ORM\QuerySubscriber\UsesPaginator
              * よりも先に実行させるため, 優先度を1に設定.
              *
@@ -62,7 +73,7 @@ class PaginatorListener implements EventSubscriberInterface
              * の順に実行されるが,
              * 優先度を1に設定し, UsesPaginatorの代わりにPaginatorListenerが動作するようにする
              */
-            'knp_pager.items' => array('items', 1)
-        );
+            'knp_pager.items' => ['items', 1],
+        ];
     }
 }

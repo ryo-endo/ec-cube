@@ -1,6 +1,20 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Tests\Web;
+
+use Eccube\Common\Constant;
+use Eccube\Entity\Customer;
 
 /**
  * ShoppingController 用 WebTest の抽象クラス.
@@ -14,98 +28,131 @@ abstract class AbstractShoppingControllerTestCase extends AbstractWebTestCase
     public function setUp()
     {
         parent::setUp();
-        $this->initializeMailCatcher();
     }
 
     public function tearDown()
     {
-        $this->cleanUpMailCatcherMessages();
         parent::tearDown();
     }
 
     public function createShippingFormData()
     {
         $faker = $this->getFaker();
-        $tel = explode('-', $faker->phoneNumber);
 
-        $email = $faker->safeEmail;
-
-        $form = array(
-            'name' => array(
+        $form = [
+            'name' => [
                 'name01' => $faker->lastName,
                 'name02' => $faker->firstName,
-            ),
-            'kana' => array(
-                'kana01' => $faker->lastKanaName ,
+            ],
+            'kana' => [
+                'kana01' => $faker->lastKanaName,
                 'kana02' => $faker->firstKanaName,
-            ),
+            ],
             'company_name' => $faker->company,
-            'zip' => array(
-                'zip01' => $faker->postcode1(),
-                'zip02' => $faker->postcode2(),
-            ),
-            'address' => array(
+            'postal_code' => $faker->postcode,
+            'address' => [
                 'pref' => '5',
                 'addr01' => $faker->city,
                 'addr02' => $faker->streetAddress,
-            ),
-            'tel' => array(
-                'tel01' => $tel[0],
-                'tel02' => $tel[1],
-                'tel03' => $tel[2],
-            ),
-            '_token' => 'dummy'
-        );
+            ],
+            'phone_number' => $faker->phoneNumber,
+            '_token' => 'dummy',
+        ];
+
         return $form;
     }
 
-    protected function scenarioCartIn($client, $product_class_id = 1)
+    protected function scenarioCartIn(Customer $Customer = null, $product_class_id = 1)
     {
-        $crawler = $client->request('POST', '/cart/add', array('product_class_id' => $product_class_id));
-        $this->app['eccube.service.cart']->lock();
-        return $crawler;
-    }
-
-    protected function scenarioInput($client, $formData)
-    {
-        $crawler = $client->request(
-            'POST',
-            $this->app->path('shopping_nonmember'),
-            array('nonmember' => $formData)
-        );
-        $this->app['eccube.service.cart']->lock();
-        return $crawler;
-    }
-
-    protected function scenarioConfirm($client)
-    {
-        $crawler = $client->request('GET', $this->app->path('shopping'));
-        return $crawler;
-    }
-
-    protected function scenarioComplete($client, $confirm_url, array $shippings = array())
-    {
-        $faker = $this->getFaker();
-        if (count($shippings) < 1) {
-            $shippings = array(
-                array(
-                    'delivery' => 1,
-                    'deliveryTime' => 1
-                ),
-            );
+        if ($Customer) {
+            $this->loginTo($Customer);
         }
 
-        $crawler = $client->request(
+        $this->client->request(
+            'PUT',
+            $this->generateUrl(
+                'cart_handle_item',
+                [
+                    'operation' => 'up',
+                    'productClassId' => $product_class_id,
+                ]
+            ),
+            [Constant::TOKEN_NAME => '_dummy']
+        );
+
+        if ($Customer) {
+            $this->loginTo($Customer);
+        }
+
+        return $this->client->request(
+            'GET',
+            $this->generateUrl('cart_buystep')
+        );
+    }
+
+    protected function scenarioInput($formData)
+    {
+        $formData[Constant::TOKEN_NAME] = '_dummy';
+        $crawler = $this->client->request(
+            'POST',
+            $this->generateUrl('shopping_nonmember'),
+            ['nonmember' => $formData]
+        );
+
+        return $crawler;
+    }
+
+    protected function scenarioConfirm(Customer $Customer = null)
+    {
+        if ($Customer) {
+            $this->loginTo($Customer);
+        }
+        $crawler = $this->client->request('GET', $this->generateUrl('shopping'));
+
+        return $crawler;
+    }
+
+    protected function scenarioRedirectTo(Customer $Cusotmer, $parameters)
+    {
+        if ($Cusotmer) {
+            $this->loginTo($Cusotmer);
+        }
+
+        return $this->client->request(
+            'POST',
+            $this->generateUrl('shopping_redirect_to'),
+            $parameters
+        );
+    }
+
+    protected function scenarioComplete(Customer $Customer = null, $confirm_url, array $shippings = [])
+    {
+        if ($Customer) {
+            $this->loginTo($Customer);
+        }
+
+        $faker = $this->getFaker();
+        if (count($shippings) < 1) {
+            $shippings = [
+                [
+                    'Delivery' => 1,
+                    'DeliveryTime' => 1,
+                ],
+            ];
+        }
+
+        $this->client->enableProfiler();
+
+        $crawler = $this->client->request(
             'POST',
             $confirm_url,
-            array('shopping' =>
-                  array(
-                      'shippings' => $shippings,
-                      'payment' => 3,
-                      'message' => $faker->text(),
-                      '_token' => 'dummy'
-                  )
-            )
+            ['_shopping_order' => [
+                      'Shippings' => $shippings,
+                      'Payment' => 3,
+                      'message' => $faker->realText(),
+                      '_token' => 'dummy',
+                  ],
+            ]
         );
 
         return $crawler;

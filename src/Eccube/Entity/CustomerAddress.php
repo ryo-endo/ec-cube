@@ -1,170 +1,46 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
-use Eccube\Common\Constant;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CustomerAddress
+ *
+ * @ORM\Table(name="dtb_customer_address")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\CustomerAddressRepository")
  */
-class CustomerAddress extends \Eccube\Entity\AbstractEntity
+class CustomerAddress extends AbstractEntity
 {
     /**
-     * @var integer
-     */
-    private $id;
-
-    /**
-     * @var string
-     */
-    private $name01;
-
-    /**
-     * @var string
-     */
-    private $name02;
-
-    /**
-     * @var string
-     */
-    private $kana01;
-
-    /**
-     * @var string
-     */
-    private $kana02;
-
-    /**
-     * @var string
-     */
-    private $company_name;
-
-    /**
-     * @var string
-     */
-    private $zip01;
-
-    /**
-     * @var string
-     */
-    private $zip02;
-
-    /**
-     * @var string
-     */
-    private $zipcode;
-
-    /**
-     * @var string
-     */
-    private $addr01;
-
-    /**
-     * @var string
-     */
-    private $addr02;
-
-    /**
-     * @var string
-     */
-    private $tel01;
-
-    /**
-     * @var string
-     */
-    private $tel02;
-
-    /**
-     * @var string
-     */
-    private $tel03;
-
-    /**
-     * @var string
-     */
-    private $fax01;
-
-    /**
-     * @var string
-     */
-    private $fax02;
-
-    /**
-     * @var \DateTime
-     */
-    private $create_date;
-
-    /**
-     * @var \DateTime
-     */
-    private $update_date;
-
-    /**
-     * @var integer
-     */
-    private $del_flg;
-
-    /**
-     * @var string
-     */
-    private $fax03;
-
-    /**
-     * @var \Eccube\Entity\Customer
-     */
-    private $Customer;
-
-    /**
-     * @var \Eccube\Entity\Master\Country
-     */
-    private $Country;
-
-    /**
-     * @var \Eccube\Entity\Master\Pref
-     */
-    private $Pref;
-
-    public function __construct()
-    {
-        $this->setDelFlg(Constant::DISABLED);
-    }
-
-    /**
      * getShippingMultipleDefaultName
-     * 
+     *
      * @return string
      */
     public function getShippingMultipleDefaultName()
     {
-        return $this->getName01() . ' ' . $this->getPref()->getName() . ' ' . $this->getAddr01() . ' ' . $this->getAddr02();
+        return $this->getName01().' '.$this->getPref()->getName().' '.$this->getAddr01().' '.$this->getAddr02();
     }
-    
+
     /**
      * Set from customer.
-     * 
+     *
      * @param \Eccube\Entity\Customer $Customer
+     *
      * @return \Eccube\Entity\CustomerAddress
      */
     public function setFromCustomer(Customer $Customer)
@@ -176,26 +52,20 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
             ->setKana01($Customer->getKana01())
             ->setKana02($Customer->getKana02())
             ->setCompanyName($Customer->getCompanyName())
-            ->setTel01($Customer->getTel01())
-            ->setTel02($Customer->getTel02())
-            ->setTel03($Customer->getTel03())
-            ->setFax01($Customer->getFax01())
-            ->setFax02($Customer->getFax02())
-            ->setFax03($Customer->getFax03())
-            ->setZip01($Customer->getZip01())
-            ->setZip02($Customer->getZip02())
-            ->setZipCode($Customer->getZip01() . $Customer->getZip02())
+            ->setPhoneNumber($Customer->getPhoneNumber())
+            ->setPostalCode($Customer->getPostalCode())
             ->setPref($Customer->getPref())
             ->setAddr01($Customer->getAddr01())
             ->setAddr02($Customer->getAddr02());
 
         return $this;
     }
-    
+
     /**
      * Set from Shipping.
-     * 
+     *
      * @param \Eccube\Entity\Shipping $Shipping
+     *
      * @return \Eccube\Entity\CustomerAddress
      */
     public function setFromShipping(Shipping $Shipping)
@@ -206,15 +76,8 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
             ->setKana01($Shipping->getKana01())
             ->setKana02($Shipping->getKana02())
             ->setCompanyName($Shipping->getCompanyName())
-            ->setTel01($Shipping->getTel01())
-            ->setTel02($Shipping->getTel02())
-            ->setTel03($Shipping->getTel03())
-            ->setFax01($Shipping->getFax01())
-            ->setFax02($Shipping->getFax02())
-            ->setFax03($Shipping->getFax03())
-            ->setZip01($Shipping->getZip01())
-            ->setZip02($Shipping->getZip02())
-            ->setZipCode($Shipping->getZip01() . $Shipping->getZip02())
+            ->setPhoneNumber($Shipping->getPhoneNumber())
+            ->setPostalCode($Shipping->getPostalCode())
             ->setPref($Shipping->getPref())
             ->setAddr01($Shipping->getAddr01())
             ->setAddr02($Shipping->getAddr02());
@@ -223,9 +86,125 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get id
+     * @var int
      *
-     * @return integer
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
+     */
+    private $id;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="name01", type="string", length=255, nullable=true)
+     */
+    private $name01;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="name02", type="string", length=255, nullable=true)
+     */
+    private $name02;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="kana01", type="string", length=255, nullable=true)
+     */
+    private $kana01;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="kana02", type="string", length=255, nullable=true)
+     */
+    private $kana02;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="company_name", type="string", length=255, nullable=true)
+     */
+    private $company_name;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="postal_code", type="string", length=8, nullable=true)
+     */
+    private $postal_code;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="addr01", type="string", length=255, nullable=true)
+     */
+    private $addr01;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="addr02", type="string", length=255, nullable=true)
+     */
+    private $addr02;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="phone_number", type="string", length=14, nullable=true)
+     */
+    private $phone_number;
+
+    /**
+     * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
+     */
+    private $create_date;
+
+    /**
+     * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
+     */
+    private $update_date;
+
+    /**
+     * @var \Eccube\Entity\Customer
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Customer", inversedBy="CustomerAddresses")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="customer_id", referencedColumnName="id")
+     * })
+     */
+    private $Customer;
+
+    /**
+     * @var \Eccube\Entity\Master\Country
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\Country")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="country_id", referencedColumnName="id")
+     * })
+     */
+    private $Country;
+
+    /**
+     * @var \Eccube\Entity\Master\Pref
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\Pref")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="pref_id", referencedColumnName="id")
+     * })
+     */
+    private $Pref;
+
+    /**
+     * Get id.
+     *
+     * @return int
      */
     public function getId()
     {
@@ -233,12 +212,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set name01
+     * Set name01.
      *
-     * @param  string $name01
+     * @param string|null $name01
+     *
      * @return CustomerAddress
      */
-    public function setName01($name01)
+    public function setName01($name01 = null)
     {
         $this->name01 = $name01;
 
@@ -246,9 +226,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get name01
+     * Get name01.
      *
-     * @return string
+     * @return string|null
      */
     public function getName01()
     {
@@ -256,12 +236,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set name02
+     * Set name02.
      *
-     * @param  string $name02
+     * @param string|null $name02
+     *
      * @return CustomerAddress
      */
-    public function setName02($name02)
+    public function setName02($name02 = null)
     {
         $this->name02 = $name02;
 
@@ -269,9 +250,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get name02
+     * Get name02.
      *
-     * @return string
+     * @return string|null
      */
     public function getName02()
     {
@@ -279,12 +260,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set kana01
+     * Set kana01.
      *
-     * @param  string $kana01
+     * @param string|null $kana01
+     *
      * @return CustomerAddress
      */
-    public function setKana01($kana01)
+    public function setKana01($kana01 = null)
     {
         $this->kana01 = $kana01;
 
@@ -292,9 +274,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get kana01
+     * Get kana01.
      *
-     * @return string
+     * @return string|null
      */
     public function getKana01()
     {
@@ -302,12 +284,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set kana02
+     * Set kana02.
      *
-     * @param  string $kana02
+     * @param string|null $kana02
+     *
      * @return CustomerAddress
      */
-    public function setKana02($kana02)
+    public function setKana02($kana02 = null)
     {
         $this->kana02 = $kana02;
 
@@ -315,9 +298,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get kana02
+     * Get kana02.
      *
-     * @return string
+     * @return string|null
      */
     public function getKana02()
     {
@@ -325,12 +308,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set company_name
+     * Set companyName.
      *
-     * @param  string $companyName
+     * @param string|null $companyName
+     *
      * @return CustomerAddress
      */
-    public function setCompanyName($companyName)
+    public function setCompanyName($companyName = null)
     {
         $this->company_name = $companyName;
 
@@ -338,9 +322,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get company_name
+     * Get companyName.
      *
-     * @return string
+     * @return string|null
      */
     public function getCompanyName()
     {
@@ -348,81 +332,37 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set zip01
+     * Set postal_code.
      *
-     * @param  string $zip01
+     * @param string|null $postal_code
+     *
      * @return CustomerAddress
      */
-    public function setZip01($zip01)
+    public function setPostalCode($postal_code = null)
     {
-        $this->zip01 = $zip01;
+        $this->postal_code = $postal_code;
 
         return $this;
     }
 
     /**
-     * Get zip01
+     * Get postal_code.
      *
-     * @return string
+     * @return string|null
      */
-    public function getZip01()
+    public function getPostalCode()
     {
-        return $this->zip01;
+        return $this->postal_code;
     }
 
     /**
-     * Set zip02
+     * Set addr01.
      *
-     * @param  string $zip02
+     * @param string|null $addr01
+     *
      * @return CustomerAddress
      */
-    public function setZip02($zip02)
-    {
-        $this->zip02 = $zip02;
-
-        return $this;
-    }
-
-    /**
-     * Get zip02
-     *
-     * @return string
-     */
-    public function getZip02()
-    {
-        return $this->zip02;
-    }
-
-    /**
-     * Set zipcode
-     *
-     * @param  string $zipcode
-     * @return CustomerAddress
-     */
-    public function setZipcode($zipcode)
-    {
-        $this->zipcode = $zipcode;
-
-        return $this;
-    }
-
-    /**
-     * Get zipcode
-     *
-     * @return string
-     */
-    public function getZipcode()
-    {
-        return $this->zipcode;
-    }
-
-    /**
-     * Set addr01
-     *
-     * @param  string $addr01
-     * @return CustomerAddress
-     */
-    public function setAddr01($addr01)
+    public function setAddr01($addr01 = null)
     {
         $this->addr01 = $addr01;
 
@@ -430,9 +370,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get addr01
+     * Get addr01.
      *
-     * @return string
+     * @return string|null
      */
     public function getAddr01()
     {
@@ -440,12 +380,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set addr02
+     * Set addr02.
      *
-     * @param  string $addr02
+     * @param string|null $addr02
+     *
      * @return CustomerAddress
      */
-    public function setAddr02($addr02)
+    public function setAddr02($addr02 = null)
     {
         $this->addr02 = $addr02;
 
@@ -453,9 +394,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get addr02
+     * Get addr02.
      *
-     * @return string
+     * @return string|null
      */
     public function getAddr02()
     {
@@ -463,147 +404,34 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set tel01
+     * Set phone_number.
      *
-     * @param  string $tel01
+     * @param string|null $phone_number
+     *
      * @return CustomerAddress
      */
-    public function setTel01($tel01)
+    public function setPhoneNumber($phone_number = null)
     {
-        $this->tel01 = $tel01;
+        $this->phone_number = $phone_number;
 
         return $this;
     }
 
     /**
-     * Get tel01
+     * Get phone_number.
      *
-     * @return string
+     * @return string|null
      */
-    public function getTel01()
+    public function getPhoneNumber()
     {
-        return $this->tel01;
+        return $this->phone_number;
     }
 
     /**
-     * Set tel02
+     * Set createDate.
      *
-     * @param  string $tel02
-     * @return CustomerAddress
-     */
-    public function setTel02($tel02)
-    {
-        $this->tel02 = $tel02;
-
-        return $this;
-    }
-
-    /**
-     * Get tel02
+     * @param \DateTime $createDate
      *
-     * @return string
-     */
-    public function getTel02()
-    {
-        return $this->tel02;
-    }
-
-    /**
-     * Set tel03
-     *
-     * @param  string $tel03
-     * @return CustomerAddress
-     */
-    public function setTel03($tel03)
-    {
-        $this->tel03 = $tel03;
-
-        return $this;
-    }
-
-    /**
-     * Get tel03
-     *
-     * @return string
-     */
-    public function getTel03()
-    {
-        return $this->tel03;
-    }
-
-    /**
-     * Set fax01
-     *
-     * @param  string $fax01
-     * @return CustomerAddress
-     */
-    public function setFax01($fax01)
-    {
-        $this->fax01 = $fax01;
-
-        return $this;
-    }
-
-    /**
-     * Get fax01
-     *
-     * @return string
-     */
-    public function getFax01()
-    {
-        return $this->fax01;
-    }
-
-    /**
-     * Set fax02
-     *
-     * @param  string $fax02
-     * @return CustomerAddress
-     */
-    public function setFax02($fax02)
-    {
-        $this->fax02 = $fax02;
-
-        return $this;
-    }
-
-    /**
-     * Get fax02
-     *
-     * @return string
-     */
-    public function getFax02()
-    {
-        return $this->fax02;
-    }
-
-    /**
-     * Set fax03
-     *
-     * @param  string $fax03
-     * @return CustomerAddress
-     */
-    public function setFax03($fax03)
-    {
-        $this->fax03 = $fax03;
-
-        return $this;
-    }
-
-    /**
-     * Get fax03
-     *
-     * @return string
-     */
-    public function getFax03()
-    {
-        return $this->fax03;
-    }
-
-    /**
-     * Set create_date
-     *
-     * @param  \DateTime $createDate
      * @return CustomerAddress
      */
     public function setCreateDate($createDate)
@@ -614,7 +442,7 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -624,9 +452,10 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
-     * @param  \DateTime $updateDate
+     * @param \DateTime $updateDate
+     *
      * @return CustomerAddress
      */
     public function setUpdateDate($updateDate)
@@ -637,7 +466,7 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -647,35 +476,13 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set del_lfg
+     * Set customer.
      *
-     * @param  integer $delFlg
+     * @param \Eccube\Entity\Customer|null $customer
+     *
      * @return CustomerAddress
      */
-    public function setDelFlg($delFlg)
-    {
-        $this->del_flg = $delFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get del_flg
-     *
-     * @return integer
-     */
-    public function getDelFlg()
-    {
-        return $this->del_flg;
-    }
-
-    /**
-     * Set Customer
-     *
-     * @param  \Eccube\Entity\Customer $customer
-     * @return CustomerAddress
-     */
-    public function setCustomer(\Eccube\Entity\Customer $customer)
+    public function setCustomer(\Eccube\Entity\Customer $customer = null)
     {
         $this->Customer = $customer;
 
@@ -683,9 +490,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Customer
+     * Get customer.
      *
-     * @return \Eccube\Entity\Customer
+     * @return \Eccube\Entity\Customer|null
      */
     public function getCustomer()
     {
@@ -693,9 +500,10 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Country
+     * Set country.
      *
-     * @param  \Eccube\Entity\Master\Country $country
+     * @param \Eccube\Entity\Master\Country|null $country
+     *
      * @return CustomerAddress
      */
     public function setCountry(\Eccube\Entity\Master\Country $country = null)
@@ -706,9 +514,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Country
+     * Get country.
      *
-     * @return \Eccube\Entity\Master\Country
+     * @return \Eccube\Entity\Master\Country|null
      */
     public function getCountry()
     {
@@ -716,9 +524,10 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Pref
+     * Set pref.
      *
-     * @param  \Eccube\Entity\Master\Pref $pref
+     * @param \Eccube\Entity\Master\Pref|null $pref
+     *
      * @return CustomerAddress
      */
     public function setPref(\Eccube\Entity\Master\Pref $pref = null)
@@ -729,9 +538,9 @@ class CustomerAddress extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Pref
+     * Get pref.
      *
-     * @return \Eccube\Entity\Master\Pref
+     * @return \Eccube\Entity\Master\Pref|null
      */
     public function getPref()
     {

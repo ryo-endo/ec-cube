@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Doctrine\Common\CsvDataFixtures;
 
 use Doctrine\Common\DataFixtures\FixtureInterface;
@@ -13,10 +24,17 @@ use Doctrine\DBAL\Connection;
  */
 class CsvFixture implements FixtureInterface
 {
-    /** @var \SplFileObject $file */
+    /**
+     * @var \SplFileObject
+     */
     protected $file;
 
-    public function __construct(\SplFileObject $file)
+    /**
+     * CsvFixture constructor.
+     *
+     * @param \SplFileObject|null $file
+     */
+    public function __construct(\SplFileObject $file = null)
     {
         $this->file = $file;
     }
@@ -26,9 +44,10 @@ class CsvFixture implements FixtureInterface
      */
     public function load(ObjectManager $manager)
     {
-
+        // 日本語windowsの場合はインストール時にエラーとなるので英語のロケールをセット
+        // ロケールがミスマッチしてSplFileObject::READ_CSVができないのを回避
         if ('\\' === DIRECTORY_SEPARATOR) {
-            setLocale(LC_ALL, 'English_United States.1252');
+            setlocale(LC_ALL, 'English_United States.1252');
         }
 
         // CSV Reader に設定
@@ -89,7 +108,7 @@ class CsvFixture implements FixtureInterface
 
             // シーケンスの存在チェック
             $sql = 'SELECT COUNT(*) FROM information_schema.sequences WHERE sequence_name = ?';
-            $count = $Connection->fetchColumn($sql, array($sequence_name));
+            $count = $Connection->fetchColumn($sql, [$sequence_name]);
             if ($count < 1) {
                 return;
             }
@@ -113,6 +132,7 @@ class CsvFixture implements FixtureInterface
      *
      * @param string $table_name テーブル名
      * @param array $headers カラム名の配列
+     *
      * @return string INSERT 文
      */
     public function getSql($table_name, array $headers)

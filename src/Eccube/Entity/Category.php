@@ -1,35 +1,29 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\ORM\Mapping as ORM;
-use Eccube\Util\EntityUtil;
 
 /**
  * Category
+ *
+ * @ORM\Table(name="dtb_category")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\CategoryRepository")
  */
 class Category extends \Eccube\Entity\AbstractEntity
 {
@@ -38,7 +32,7 @@ class Category extends \Eccube\Entity\AbstractEntity
      */
     public function __toString()
     {
-        return $this->getName();
+        return (string) $this->getName();
     }
 
     /**
@@ -57,16 +51,17 @@ class Category extends \Eccube\Entity\AbstractEntity
 
     /**
      * @param  \Doctrine\ORM\EntityManager $em
-     * @param  integer                     $rank
+     * @param  integer                     $SortNo
+     *
      * @return \Eccube\Entity\Category
      */
-    public function calcChildrenRank(\Doctrine\ORM\EntityManager $em, $rank)
+    public function calcChildrenSortNo(\Doctrine\ORM\EntityManager $em, $sortNo)
     {
-        $this->setRank($this->getRank() + $rank);
+        $this->setSortNo($this->getSortNo() + $sortNo);
         $em->persist($this);
 
         foreach ($this->getChildren() as $Child) {
-            $Child->calcChildrenRank($em, $rank);
+            $Child->calcChildrenSortNo($em, $sortNo);
         }
 
         return $this;
@@ -82,7 +77,7 @@ class Category extends \Eccube\Entity\AbstractEntity
 
     public function getPath()
     {
-        $path = array();
+        $path = [];
         $Category = $this;
 
         $max = 10;
@@ -100,12 +95,12 @@ class Category extends \Eccube\Entity\AbstractEntity
 
     public function getNameWithLevel()
     {
-        return str_repeat('　', $this->getLevel() - 1) . $this->getName();
+        return str_repeat('　', $this->getHierarchy() - 1).$this->getName();
     }
 
     public function getDescendants()
     {
-        $DescendantCategories = array();
+        $DescendantCategories = [];
 
         $max = 10;
         $ChildCategories = $this->getChildren();
@@ -122,8 +117,7 @@ class Category extends \Eccube\Entity\AbstractEntity
 
     public function getSelfAndDescendants()
     {
-        return array_merge(array($this), $this->getDescendants());
-
+        return array_merge([$this], $this->getDescendants());
     }
 
     /**
@@ -133,12 +127,13 @@ class Category extends \Eccube\Entity\AbstractEntity
      * COUNT自体が重いので, LIMIT 1で取得し存在チェックを行う.
      *
      * @see http://docs.doctrine-project.org/projects/doctrine-orm/en/latest/reference/working-with-associations.html#filtering-collections
+     *
      * @return bool
      */
     public function hasProductCategories()
     {
         $criteria = Criteria::create()
-            ->orderBy(array('category_id' => Criteria::ASC))
+            ->orderBy(['category_id' => Criteria::ASC])
             ->setFirstResult(0)
             ->setMaxResults(1);
 
@@ -146,57 +141,83 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="category_name", type="string", length=255)
      */
     private $name;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="hierarchy", type="integer")
      */
-    private $level;
+    private $hierarchy;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="sort_no", type="integer")
      */
-    private $rank;
+    private $sort_no;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
     /**
-     * @var integer
-     */
-    private $del_flg;
-
-    /**
      * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\ProductCategory", mappedBy="Category", fetch="EXTRA_LAZY")
      */
     private $ProductCategories;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\Category", mappedBy="Parent")
+     * @ORM\OrderBy({
+     *     "sort_no"="DESC"
+     * })
      */
     private $Children;
 
     /**
      * @var \Eccube\Entity\Category
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Category", inversedBy="Children")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="parent_category_id", referencedColumnName="id")
+     * })
      */
     private $Parent;
 
     /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
@@ -210,9 +231,9 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -220,9 +241,10 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set name
+     * Set name.
      *
-     * @param  string   $name
+     * @param string $name
+     *
      * @return Category
      */
     public function setName($name)
@@ -233,7 +255,7 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get name
+     * Get name.
      *
      * @return string
      */
@@ -243,55 +265,58 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set level
+     * Set hierarchy.
      *
-     * @param  integer  $level
+     * @param int $hierarchy
+     *
      * @return Category
      */
-    public function setLevel($level)
+    public function setHierarchy($hierarchy)
     {
-        $this->level = $level;
+        $this->hierarchy = $hierarchy;
 
         return $this;
     }
 
     /**
-     * Get level
+     * Get hierarchy.
      *
-     * @return integer
+     * @return int
      */
-    public function getLevel()
+    public function getHierarchy()
     {
-        return $this->level;
+        return $this->hierarchy;
     }
 
     /**
-     * Set rank
+     * Set sortNo.
      *
-     * @param  integer  $rank
+     * @param int $sortNo
+     *
      * @return Category
      */
-    public function setRank($rank)
+    public function setSortNo($sortNo)
     {
-        $this->rank = $rank;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get rank
+     * Get sortNo.
      *
-     * @return integer
+     * @return int
      */
-    public function getRank()
+    public function getSortNo()
     {
-        return $this->rank;
+        return $this->sort_no;
     }
 
     /**
-     * Set create_date
+     * Set createDate.
      *
-     * @param  \DateTime $createDate
+     * @param \DateTime $createDate
+     *
      * @return Category
      */
     public function setCreateDate($createDate)
@@ -302,7 +327,7 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -312,9 +337,10 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
-     * @param  \DateTime $updateDate
+     * @param \DateTime $updateDate
+     *
      * @return Category
      */
     public function setUpdateDate($updateDate)
@@ -325,7 +351,7 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -335,53 +361,33 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set del_flg
+     * Add productCategory.
      *
-     * @param  integer  $delFlg
+     * @param \Eccube\Entity\ProductCategory $productCategory
+     *
      * @return Category
      */
-    public function setDelFlg($delFlg)
+    public function addProductCategory(\Eccube\Entity\ProductCategory $productCategory)
     {
-        $this->del_flg = $delFlg;
+        $this->ProductCategories[] = $productCategory;
 
         return $this;
     }
 
     /**
-     * Get del_flg
+     * Remove productCategory.
      *
-     * @return integer
+     * @param \Eccube\Entity\ProductCategory $productCategory
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function getDelFlg()
+    public function removeProductCategory(\Eccube\Entity\ProductCategory $productCategory)
     {
-        return $this->del_flg;
+        return $this->ProductCategories->removeElement($productCategory);
     }
 
     /**
-     * Add ProductCategories
-     *
-     * @param  \Eccube\Entity\ProductCategory $productCategories
-     * @return Category
-     */
-    public function addProductCategory(\Eccube\Entity\ProductCategory $productCategories)
-    {
-        $this->ProductCategories[] = $productCategories;
-
-        return $this;
-    }
-
-    /**
-     * Remove ProductCategories
-     *
-     * @param \Eccube\Entity\ProductCategory $productCategories
-     */
-    public function removeProductCategory(\Eccube\Entity\ProductCategory $productCategories)
-    {
-        $this->ProductCategories->removeElement($productCategories);
-    }
-
-    /**
-     * Get ProductCategories
+     * Get productCategories.
      *
      * @return \Doctrine\Common\Collections\Collection
      */
@@ -391,30 +397,33 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Add Children
+     * Add child.
      *
-     * @param  \Eccube\Entity\Category $children
+     * @param \Eccube\Entity\Category $child
+     *
      * @return Category
      */
-    public function addChild(\Eccube\Entity\Category $children)
+    public function addChild(\Eccube\Entity\Category $child)
     {
-        $this->Children[] = $children;
+        $this->Children[] = $child;
 
         return $this;
     }
 
     /**
-     * Remove Children
+     * Remove child.
      *
-     * @param \Eccube\Entity\Category $children
+     * @param \Eccube\Entity\Category $child
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeChild(\Eccube\Entity\Category $children)
+    public function removeChild(\Eccube\Entity\Category $child)
     {
-        $this->Children->removeElement($children);
+        return $this->Children->removeElement($child);
     }
 
     /**
-     * Get Children
+     * Get children.
      *
      * @return \Doctrine\Common\Collections\Collection
      */
@@ -424,9 +433,10 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Parent
+     * Set parent.
      *
-     * @param  \Eccube\Entity\Category $parent
+     * @param \Eccube\Entity\Category|null $parent
+     *
      * @return Category
      */
     public function setParent(\Eccube\Entity\Category $parent = null)
@@ -437,9 +447,9 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Parent
+     * Get parent.
      *
-     * @return \Eccube\Entity\Category
+     * @return \Eccube\Entity\Category|null
      */
     public function getParent()
     {
@@ -447,9 +457,10 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set creator.
      *
-     * @param  \Eccube\Entity\Member $creator
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return Category
      */
     public function setCreator(\Eccube\Entity\Member $creator = null)
@@ -460,15 +471,12 @@ class Category extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Creator
+     * Get creator.
      *
-     * @return \Eccube\Entity\Member
+     * @return \Eccube\Entity\Member|null
      */
     public function getCreator()
     {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
         return $this->Creator;
     }
 }

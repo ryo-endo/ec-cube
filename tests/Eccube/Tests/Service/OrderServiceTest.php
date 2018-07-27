@@ -1,30 +1,17 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-
 namespace Eccube\Tests\Service;
-
-use Eccube\Application;
 
 class OrderServiceTest extends AbstractServiceTestCase
 {
@@ -35,6 +22,7 @@ class OrderServiceTest extends AbstractServiceTestCase
 
     public function setUp()
     {
+        $this->markTestIncomplete('To be removed');
         parent::setUp();
         $this->Customer = $this->createCustomer();
         $this->Order = $this->createOrder($this->Customer);
@@ -44,15 +32,17 @@ class OrderServiceTest extends AbstractServiceTestCase
 
     public function testGetSubTotal()
     {
+        $this->markTestSkipped('新しい配送管理の実装が完了するまでスキップ');
+
         $quantity = 3;
         $price = 100;
-        $rows = count($this->Order->getOrderDetails());
+        $rows = count($this->Order->getOrderItems());
 
         $subTotal = 0;
-        foreach ($this->Order->getOrderDetails() as $Detail) {
-            $Detail->setPrice($price);
-            $Detail->setQuantity($quantity);
-            $subTotal = $Detail->getPriceIncTax() * $Detail->getQuantity();
+        foreach ($this->Order->getOrderItems() as $Item) {
+            $Item->setPrice($price);
+            $Item->setQuantity($quantity);
+            $subTotal = $Item->getPriceIncTax() * $Item->getQuantity();
         }
         $this->Order->setSubTotal($subTotal);
         $this->app['orm.em']->flush();
@@ -64,50 +54,10 @@ class OrderServiceTest extends AbstractServiceTestCase
         $this->verify();
     }
 
-    public function testGetTotalQuantity()
+    public function testGetSaleTypes()
     {
-        $quantity = 3;
-        $rows = count($this->Order->getOrderDetails());
-
-        $total = 0;
-        foreach ($this->Order->getOrderDetails() as $Detail) {
-            $Detail->setQuantity($quantity);
-            $total += $Detail->getQuantity();
-        }
-        $this->app['orm.em']->flush();
-
-        $Result = $this->app['eccube.repository.order']->find($this->Order->getId());
-
-        $this->expected = $total;
-        $this->actual = $this->app['eccube.service.order']->getTotalQuantity($Result);
-        $this->verify();
-    }
-
-    public function testGetTotalTax()
-    {
-        $quantity = 3;
-        $price = 100;
-        $rows = count($this->Order->getOrderDetails());
-
-        $totalTax = 0;
-        foreach ($this->Order->getOrderDetails() as $Detail) {
-            $Detail->setPrice($price);
-            $Detail->setQuantity($quantity);
-            $totalTax += ($Detail->getPriceIncTax() - $Detail->getPrice()) * $Detail->getQuantity();
-        }
-        $this->app['orm.em']->flush();
-
-        $Result = $this->app['eccube.repository.order']->find($this->Order->getId());
-
-        $this->expected = ($price * ($this->rate / 100)) * $quantity * $rows;
-        $this->actual = $this->app['eccube.service.order']->getTotalTax($Result);
-        $this->verify();
-    }
-
-    public function testGetProductTypes()
-    {
-        $this->expected = array($this->app['eccube.repository.master.product_type']->find(1));
-        $this->actual = $this->app['eccube.service.order']->getProductTypes($this->Order);
+        $this->expected = [$this->app['eccube.repository.master.sale_type']->find(1)];
+        $this->actual = $this->app['eccube.service.order']->getSaleTypes($this->Order);
         $this->verify();
     }
 }

@@ -1,135 +1,164 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Controller\Admin\Setting\Shop;
 
-use Eccube\Application;
-use Eccube\Common\Constant;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Eccube\Controller\AbstractController;
+use Eccube\Entity\Payment;
 use Eccube\Event\EccubeEvents;
 use Eccube\Event\EventArgs;
+use Eccube\Form\Type\Admin\PaymentRegisterType;
+use Eccube\Repository\PaymentRepository;
+use Eccube\Service\Payment\Method\Cash;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
+use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Class PaymentController
+ */
 class PaymentController extends AbstractController
 {
-    public function index(Application $app, Request $request)
+    /**
+     * @var PaymentRepository
+     */
+    protected $paymentRepository;
+
+    /**
+     * PaymentController constructor.
+     *
+     * @param PaymentRepository $paymentRepository
+     */
+    public function __construct(PaymentRepository $paymentRepository)
     {
-        $Payments = $app['eccube.repository.payment']
+        $this->paymentRepository = $paymentRepository;
+    }
+
+    /**
+     * @Route("/%eccube_admin_route%/setting/shop/payment", name="admin_setting_shop_payment")
+     * @Template("@admin/Setting/Shop/payment.twig")
+     */
+    public function index(Request $request)
+    {
+        $Payments = $this->paymentRepository
             ->findBy(
-                array('del_flg' => 0),
-                array('rank' => 'DESC')
+                [],
+                ['sort_no' => 'DESC']
             );
 
         $event = new EventArgs(
-            array(
+            [
                 'Payments' => $Payments,
-            ),
+            ],
             $request
         );
-        $app['eccube.event.dispatcher']->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_INDEX_COMPLETE, $event);
+        $this->eventDispatcher->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_INDEX_COMPLETE, $event);
 
-        return $app->render('Setting/Shop/payment.twig', array(
+        return [
             'Payments' => $Payments,
-        ));
+        ];
     }
 
-    public function edit(Application $app, Request $request, $id = null)
+    /**
+     * @Route("/%eccube_admin_route%/setting/shop/payment/new", name="admin_setting_shop_payment_new")
+     * @Route("/%eccube_admin_route%/setting/shop/payment/{id}/edit", requirements={"id" = "\d+"}, name="admin_setting_shop_payment_edit")
+     * @Template("@admin/Setting/Shop/payment_edit.twig")
+     */
+    public function edit(Request $request, Payment $Payment = null)
     {
-        $Payment = $app['eccube.repository.payment']
-            ->findOrCreate($id);
+        if (is_null($Payment)) {
+            // FIXME
+            $Payment = $this->paymentRepository
+                ->findOrCreate(0);
+        }
 
-        $builder = $app['form.factory']
-            ->createBuilder('payment_register');
+        $builder = $this->formFactory
+            ->createBuilder(PaymentRegisterType::class, $Payment);
 
         $event = new EventArgs(
-            array(
+            [
                 'builder' => $builder,
                 'Payment' => $Payment,
-            ),
+            ],
             $request
         );
-        $app['eccube.event.dispatcher']->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_EDIT_INITIALIZE, $event);
+        $this->eventDispatcher->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_EDIT_INITIALIZE, $event);
 
         $form = $builder->getForm();
 
+        $form->setData($Payment);
+        $form->handleRequest($request);
+
         // 既に画像保存されてる場合は取得する
         $oldPaymentImage = $Payment->getPaymentImage();
-        $form->setData($Payment);
 
         // 登録ボタン押下
-        if ('POST' === $app['request']->getMethod()) {
-            $form->handleRequest($app['request']);
-
+        if ($form->isSubmitted()) {
             if ($form->isValid()) {
-                $PaymentData = $form->getData();
-
-                // 手数料を設定できない場合には、手数料を0にする
-                if ($PaymentData->getChargeFlg() == 2) {
-                    $PaymentData->setCharge(0);
-                }
+                $Payment = $form->getData();
 
                 // ファイルアップロード
                 $file = $form['payment_image']->getData();
                 $fs = new Filesystem();
-                if ($file && $fs->exists($app['config']['image_temp_realdir'] . '/' . $file)) {
+                if ($file && $fs->exists($this->getParameter('eccube_temp_image_dir').'/'.$file)) {
                     $fs->rename(
-                        $app['config']['image_temp_realdir'] . '/' . $file,
-                        $app['config']['image_save_realdir'] . '/' . $file
+                        $this->getParameter('eccube_temp_image_dir').'/'.$file,
+                        $this->getParameter('eccube_save_image_dir').'/'.$file
                     );
                 }
 
-                $app['orm.em']->persist($PaymentData);
-
-                $app['orm.em']->flush();
+                // Payment method class of Cash to default.
+                if (!$Payment->getMethodClass()) {
+                    $Payment->setMethodClass(Cash::class);
+                }
+                $this->entityManager->persist($Payment);
+                $this->entityManager->flush();
 
                 $event = new EventArgs(
-                    array(
+                    [
                         'form' => $form,
                         'Payment' => $Payment,
-                    ),
+                    ],
                     $request
                 );
-                $app['eccube.event.dispatcher']->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_EDIT_COMPLETE, $event);
+                $this->eventDispatcher->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_EDIT_COMPLETE, $event);
 
-                $app->addSuccess('admin.register.complete', 'admin');
+                $this->addSuccess('admin.register.complete', 'admin');
 
-                return $app->redirect($app->url('admin_setting_shop_payment'));
+                return $this->redirectToRoute('admin_setting_shop_payment');
+            } else {
+                $this->addError('admin.register.failed', 'admin');
             }
         }
 
-        return $app->render('Setting/Shop/payment_edit.twig', array(
+        return [
             'form' => $form->createView(),
-            'payment_id' => $id,
+            'payment_id' => $Payment->getId(),
             'Payment' => $Payment,
             'oldPaymentImage' => $oldPaymentImage,
-        ));
+        ];
     }
 
-    public function imageAdd(Application $app, Request $request)
+    /**
+     * @Route("/%eccube_admin_route%/setting/shop/payment/image/add", name="admin_payment_image_add")
+     */
+    public function imageAdd(Request $request)
     {
         if (!$request->isXmlHttpRequest()) {
             throw new BadRequestHttpException();
@@ -147,106 +176,160 @@ class PaymentController extends AbstractController
             }
 
             $extension = $image->guessExtension();
-            $filename = date('mdHis') . uniqid('_') . '.' . $extension;
-            $image->move($app['config']['image_temp_realdir'], $filename);
+            $filename = date('mdHis').uniqid('_').'.'.$extension;
+            $image->move($this->getParameter('eccube_temp_image_dir'), $filename);
         }
         $event = new EventArgs(
-            array(
+            [
                 'images' => $images,
                 'filename' => $filename,
-            ),
+            ],
             $request
         );
-        $app['eccube.event.dispatcher']->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_IMAGE_ADD_COMPLETE, $event);
+        $this->eventDispatcher->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_IMAGE_ADD_COMPLETE, $event);
         $filename = $event->getArgument('filename');
 
-        return $app->json(array('filename' => $filename), 200);
+        return $this->json(['filename' => $filename], 200);
     }
 
-    public function delete(Application $app, Request $request, $id)
+    /**
+     * @Method("DELETE")
+     * @Route("/%eccube_admin_route%/setting/shop/payment/{id}/delete", requirements={"id" = "\d+"}, name="admin_setting_shop_payment_delete")
+     *
+     * @param Request $request
+     * @param Payment $TargetPayment
+     *
+     * @return \Symfony\Component\HttpFoundation\RedirectResponse
+     */
+    public function delete(Request $request, Payment $TargetPayment)
     {
-        $this->isTokenValid($app);
+        $this->isTokenValid();
 
-        $Payment = $app['eccube.repository.payment']->find($id);
-        if (!$Payment) {
-            $app->deleteMessage();
-            return $app->redirect($app->url('admin_setting_shop_payment'));
-        }
-
-        $Payment
-            ->setDelFlg(Constant::ENABLED)
-            ->setRank(0);
-        $app['orm.em']->persist($Payment);
-
-        $rank = 1;
-        $Payments = $app['eccube.repository.payment']->findBy(array('del_flg' => Constant::DISABLED), array('rank' => 'ASC'));
+        $sortNo = 1;
+        $Payments = $this->paymentRepository->findBy([], ['sort_no' => 'ASC']);
         foreach ($Payments as $Payment) {
-            if ($Payment->getId() != $id) {
-                $Payment->setRank($rank);
-                $rank ++;
+            $Payment->setSortNo($sortNo++);
+        }
+
+        try {
+            $this->paymentRepository->delete($TargetPayment);
+            $this->entityManager->flush();
+
+            $event = new EventArgs(
+                [
+                    'Payment' => $TargetPayment,
+                ],
+                $request
+            );
+            $this->eventDispatcher->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_DELETE_COMPLETE, $event);
+
+            $this->addSuccess('admin.delete.complete', 'admin');
+        } catch (ForeignKeyConstraintViolationException $e) {
+            $this->entityManager->rollback();
+
+            $message = trans('admin.delete.failed.foreign_key', ['%name%' => $TargetPayment->getMethod()]);
+            $this->addError($message, 'admin');
+        }
+
+        return $this->redirectToRoute('admin_setting_shop_payment');
+    }
+
+    /**
+     * @Method("PUT")
+     * @Route("/%eccube_admin_route%/setting/shop/payment/{id}/up", requirements={"id" = "\d+"}, name="admin_setting_shop_payment_up")
+     */
+    public function up(Payment $current)
+    {
+        $this->isTokenValid();
+
+        $currentSortNo = $current->getSortNo();
+        $targetSortNo = $currentSortNo + 1;
+
+        $target = $this->paymentRepository->findOneBy(['sort_no' => $targetSortNo]);
+
+        if ($target) {
+            $this->entityManager->persist($target->setSortNo($currentSortNo));
+            $this->entityManager->persist($current->setSortNo($targetSortNo));
+            $this->entityManager->flush();
+
+            $this->addSuccess('admin.sort_no.move.complete', 'admin');
+        } else {
+            $this->addError('admin.sort_no.up.error', 'admin');
+        }
+
+        return $this->redirectToRoute('admin_setting_shop_payment');
+    }
+
+    /**
+     * @Method("PUT")
+     * @Route("/%eccube_admin_route%/setting/shop/payment/{id}/down", requirements={"id" = "\d+"}, name="admin_setting_shop_payment_down")
+     */
+    public function down(Payment $current)
+    {
+        $this->isTokenValid();
+
+        $currentSortNo = $current->getSortNo();
+        $targetSortNo = $currentSortNo - 1;
+
+        $target = $this->paymentRepository->findOneBy(['sort_no' => $targetSortNo]);
+
+        if ($target) {
+            $this->entityManager->persist($target->setSortNo($currentSortNo));
+            $this->entityManager->persist($current->setSortNo($targetSortNo));
+            $this->entityManager->flush();
+
+            $this->addSuccess('admin.sort_no.move.complete', 'admin');
+        } else {
+            $this->addError('admin.sort_no.down.error', 'admin');
+        }
+
+        return $this->redirectToRoute('admin_setting_shop_payment');
+    }
+
+    /**
+     * @Method("PUT")
+     * @Route("/%eccube_admin_route%/setting/shop/payment/{id}/visible", requirements={"id" = "\d+"}, name="admin_setting_shop_payment_visible")
+     */
+    public function visible(Payment $Payment)
+    {
+        $this->isTokenValid();
+
+        $Payment->setVisible(!$Payment->isVisible());
+
+        $this->entityManager->flush();
+
+        if ($Payment->isVisible()) {
+            $this->addSuccess('admin.payment.visible.complete', 'admin');
+        } else {
+            $this->addSuccess('admin.payment.invisible.complete', 'admin');
+        }
+
+        return $this->redirectToRoute('admin_setting_shop_payment');
+    }
+
+    /**
+     * @Method("POST")
+     * @Route("/%eccube_admin_route%/setting/shop/payment/sort_no/move", name="admin_setting_shop_payment_sort_no_move")
+     *
+     * @param Request $request
+     *
+     * @return Response
+     */
+    public function moveSortNo(Request $request)
+    {
+        if ($request->isXmlHttpRequest()) {
+            $this->isTokenValid();
+            $sortNos = $request->request->all();
+            foreach ($sortNos as $paymentId => $sortNo) {
+                /** @var Payment $Payment */
+                $Payment = $this->paymentRepository
+                    ->find($paymentId);
+                $Payment->setSortNo($sortNo);
+                $this->entityManager->persist($Payment);
             }
+            $this->entityManager->flush();
         }
 
-        $app['orm.em']->flush();
-
-        $event = new EventArgs(
-            array(
-                'Payment' => $Payment,
-            ),
-            $request
-        );
-        $app['eccube.event.dispatcher']->dispatch(EccubeEvents::ADMIN_SETTING_SHOP_PAYMENT_DELETE_COMPLETE, $event);
-
-        $app->addSuccess('admin.delete.complete', 'admin') ;
-
-        return $app->redirect($app->url('admin_setting_shop_payment'));
-    }
-
-    public function up(Application $app, $id)
-    {
-        $this->isTokenValid($app);
-
-        $repo = $app['orm.em']->getRepository('Eccube\Entity\Payment');
-
-        $current = $repo->find($id);
-        $currentRank = $current->getRank();
-
-        $targetRank = $currentRank + 1;
-        $target = $repo->findOneBy(array('rank' => $targetRank));
-        if($target) {
-            $app['orm.em']->persist($target->setRank($currentRank));
-            $app['orm.em']->persist($current->setRank($targetRank));
-            $app['orm.em']->flush();
-
-            $app->addSuccess('admin.rank.move.complete', 'admin');
-        } else {
-            $app->addError('admin.rank.up.error', 'admin');
-        }
-
-        return $app->redirect($app->url('admin_setting_shop_payment'));
-    }
-
-    public function down(Application $app, $id)
-    {
-        $this->isTokenValid($app);
-
-        $repo = $app['orm.em']->getRepository('Eccube\Entity\Payment');
-
-        $current = $repo->find($id);
-        $currentRank = $current->getRank();
-
-        $targetRank = $currentRank - 1;
-        $target = $repo->findOneBy(array('rank' => $targetRank));
-        if($target) {
-            $app['orm.em']->persist($target->setRank($currentRank));
-            $app['orm.em']->persist($current->setRank($targetRank));
-            $app['orm.em']->flush();
-
-            $app->addSuccess('admin.rank.move.complete', 'admin');
-        } else {
-            $app->addError('admin.rank.down.error', 'admin');
-        }
-
-        return $app->redirect($app->url('admin_setting_shop_payment'));
+        return new Response();
     }
 }

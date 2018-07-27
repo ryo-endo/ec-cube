@@ -1,40 +1,39 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Form\Type\Admin;
 
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Validator\Constraints as Assert;
+use Eccube\Common\EccubeConfig;
+use Eccube\Form\Type\PriceType;
+use Eccube\Form\Type\Master\OrderStatusType;
+use Eccube\Form\Type\Master\PaymentType;
 
 class SearchOrderType extends AbstractType
 {
-    private $config;
+    /**
+     * @var EccubeConfig
+     */
+    protected $eccubeConfig;
 
-    public function __construct($config)
+    public function __construct(EccubeConfig $eccubeConfig)
     {
-        $this->config = $config;
+        $this->eccubeConfig = $eccubeConfig;
     }
 
     /**
@@ -42,148 +41,156 @@ class SearchOrderType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $config = $this->config;
         $builder
             // 受注ID・注文者名・注文者（フリガナ）・注文者会社名
-            ->add('multi', 'text', array(
-                'label' => '受注ID・注文者名・注文者（フリガナ）・注文者会社名',
+            ->add('multi', TextType::class, [
+                'label' => 'searchorder.label.multi',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Length(array('max' => $config['stext_len'])),
-                ),
-            ))
-            ->add('multi_status', 'order_status', array(
-                'label' => '対応状況',
+                'constraints' => [
+                    new Assert\Length(['max' => $this->eccubeConfig['eccube_stext_len']]),
+                ],
+            ])
+            ->add('status', OrderStatusType::class, [
+                'label' => 'searchorder.label.status',
                 'expanded' => true,
                 'multiple' => true,
-            ))
-            ->add('name', 'text', array(
+            ])
+            ->add('name', TextType::class, [
+                'label' => 'searchorder.label.name',
                 'required' => false,
-            ))
-            ->add('email', 'text', array(
-                'required' => false,
-            ))
-            ->add(
-                $builder->create('tel', 'text', array(
-                        'required' => false,
-                        'constraints' => array(
-                            new Assert\Regex(array(
-                                'pattern' => "/^[\d-]+$/u",
-                                'message' => 'form.type.admin.nottelstyle',
-                            )),
-                        ),
-                    ))
-                    ->addEventSubscriber(new \Eccube\EventListener\ConvertTelListener())
-            )
-            ->add('sex', 'sex', array(
-                'label' => '性別',
-                'required' => false,
-                'expanded' => true,
-                'multiple' => true,
-            ))
-            ->add('payment', 'payment', array(
-                'label' => '支払方法',
-                'required' => false,
-                'expanded' => true,
-                'multiple' => true,
-            ))
-            ->add('order_date_start', 'date', array(
-                'label' => '受注日(FROM)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('order_date_end', 'date', array(
-                'label' => '受注日(TO)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('payment_date_start', 'date', array(
-                'label' => '入金日(FROM)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('payment_date_end', 'date', array(
-                'label' => '入金日(TO)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('commit_date_start', 'date', array(
-                'label' => '発送日(FROM)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('commit_date_end', 'date', array(
-                'label' => '発送日(TO)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('update_date_start', 'date', array(
-                'label' => '更新日(FROM)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('update_date_end', 'date', array(
-                'label' => '更新日(TO)',
-                'required' => false,
-                'input' => 'datetime',
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('payment_total_start', 'integer', array(
-                'label' => '購入金額(下限)',
-                'required' => false,
-            ))
-            ->add('payment_total_end', 'integer', array(
-                'label' => '購入金額(上限)',
-                'required' => false,
-            ))
-            ->add('buy_product_name', 'text', array(
-                'label' => '購入商品名',
-                'required' => false,
-            ))
-        ;
-
-        $builder->add(
-            $builder
-                ->create('kana', 'text', array(
+            ])
+            ->add($builder
+                ->create('kana', TextType::class, [
+                    'label' => 'searchorder.label.kana',
                     'required' => false,
-                    'constraints' => array(
-                        new Assert\Regex(array(
-                            'pattern' => "/^[ァ-ヶｦ-ﾟー]+$/u",
+                    'constraints' => [
+                        new Assert\Regex([
+                            'pattern' => '/^[ァ-ヶｦ-ﾟー]+$/u',
                             'message' => 'form.type.admin.notkanastyle',
-                        )),
-                    ),
-                ))
-                ->addEventSubscriber(new \Eccube\EventListener\ConvertKanaListener('CV'))
-        );
+                        ]),
+                    ],
+                ])
+                ->addEventSubscriber(new \Eccube\Form\EventListener\ConvertKanaListener('CV')
+            ))
+            ->add('company_name', TextType::class, [
+                'label' => 'searchorder.label.company_name',
+                'required' => false,
+            ])
+            ->add('email', TextType::class, [
+                'label' => 'searchorder.label.email',
+                'required' => false,
+            ])
+            ->add('order_no', TextType::class, [
+                'label' => 'searchorder.label.order_no',
+                'required' => false,
+            ])
+            ->add('phone_number', TextType::class, [
+                'label' => 'common.label.phone_number',
+                'required' => false,
+                'constraints' => [
+                    new Assert\Regex([
+                        'pattern' => "/^[\d-]+$/u",
+                        'message' => 'form.type.admin.nottelstyle',
+                    ]),
+                ],
+            ])
+            ->add('tracking_number', TextType::class, [
+                'label' => 'searchorder.label.tracking_number',
+                'required' => false,
+            ])
+            ->add('shipping_mail_send', CheckboxType::class, [
+                'label' => 'searchorder.label.shipping_mail_send',
+                'required' => false,
+            ])
+            ->add('payment', PaymentType::class, [
+                'label' => 'searchorder.label.payment_method',
+                'required' => false,
+                'expanded' => true,
+                'multiple' => true,
+            ])
+            ->add('order_date_start', DateType::class, [
+                'label' => 'searchorder.label.order_date_from',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('order_date_end', DateType::class, [
+                'label' => 'searchorder.label.order_date_to',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('payment_date_start', DateType::class, [
+                'label' => 'searchorder.label.payment_date_from',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('payment_date_end', DateType::class, [
+                'label' => 'searchorder.label.payment_date_to',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('update_date_start', DateType::class, [
+                'label' => 'searchorder.label.updated_date_from',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('update_date_end', DateType::class, [
+                'label' => 'searchorder.label.updated_date_to',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('shipping_delivery_date_start', DateType::class, [
+                'label' => 'searchorder.label.shipping_delivery_date_start',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('shipping_delivery_date_end', DateType::class, [
+                'label' => 'searchorder.label.shipping_delivery_date_end',
+                'required' => false,
+                'input' => 'datetime',
+                'widget' => 'single_text',
+                'format' => 'yyyy-MM-dd',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('payment_total_start', PriceType::class, [
+                'label' => 'searchorder.label.purchased_amount_min',
+                'required' => false,
+            ])
+            ->add('payment_total_end', PriceType::class, [
+                'label' => 'searchorder.label.purchased_amount_max',
+                'required' => false,
+            ])
+            ->add('buy_product_name', TextType::class, [
+                'label' => 'searchorder.label.purchased_products',
+                'required' => false,
+            ])
+        ;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'admin_search_order';
     }

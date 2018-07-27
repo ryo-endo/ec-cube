@@ -1,34 +1,28 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
-use Eccube\Util\EntityUtil;
-
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * TaxRule
+ *
+ * @ORM\Table(name="dtb_tax_rule")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\TaxRuleRepository")
  */
 class TaxRule extends \Eccube\Entity\AbstractEntity
 {
@@ -40,7 +34,7 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     /**
      * @var integer
      */
-    private $rank;
+    private $sort_no;
 
     /**
      * is default
@@ -49,102 +43,141 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
      */
     public function isDefaultTaxRule()
     {
-        return (self::DEFAULT_TAX_RULE_ID === $this->getId());
+        return self::DEFAULT_TAX_RULE_ID === $this->getId();
     }
 
     /**
-     * Set rank
+     * Set sortNo
      *
-     * @param  integer $rank
+     * @param  integer $sortNo
+     *
      * @return TaxRule
      */
-    public function setRank($rank)
+    public function setSortNo($sortNo)
     {
-        $this->rank = $rank;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get rank
+     * Get sortNo
      *
      * @return integer
      */
-    public function getRank()
+    public function getSortNo()
     {
-        return $this->rank;
+        return $this->sort_no;
     }
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="tax_rate", type="decimal", precision=10, scale=0, options={"unsigned":true,"default":8})
      */
-    private $tax_rate;
+    private $tax_rate = 8;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="tax_adjust", type="decimal", precision=10, scale=0, options={"unsigned":true,"default":0})
      */
-    private $tax_adjust;
+    private $tax_adjust = 0;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="apply_date", type="datetimetz")
      */
     private $apply_date;
 
     /**
-     * @var integer
-     */
-    private $del_flg;
-
-    /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
     /**
+     * @var \Eccube\Entity\ProductClass
+     *
+     * @ORM\OneToOne(targetEntity="Eccube\Entity\ProductClass", inversedBy="TaxRule")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="product_class_id", referencedColumnName="id")
+     * })
+     */
+    private $ProductClass;
+
+    /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
     /**
      * @var \Eccube\Entity\Master\Country
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\Country")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="country_id", referencedColumnName="id")
+     * })
      */
     private $Country;
 
     /**
      * @var \Eccube\Entity\Master\Pref
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\Pref")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="pref_id", referencedColumnName="id")
+     * })
      */
     private $Pref;
 
     /**
      * @var \Eccube\Entity\Product
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Product")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="product_id", referencedColumnName="id")
+     * })
      */
     private $Product;
 
     /**
-     * @var \Eccube\Entity\ProductClass
-     */
-    private $ProductClass;
-
-    /**
-     * @var \Eccube\Entity\Master\Taxrule
-     */
-    private $CalcRule;
-
-
-    /**
-     * Get id
+     * @var \Eccube\Entity\Master\RoundingType
      *
-     * @return integer
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\RoundingType")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="rounding_type_id", referencedColumnName="id")
+     * })
+     */
+    private $RoundingType;
+
+    /**
+     * Get id.
+     *
+     * @return int
      */
     public function getId()
     {
@@ -152,9 +185,10 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set tax_rate
+     * Set taxRate.
      *
      * @param string $taxRate
+     *
      * @return TaxRule
      */
     public function setTaxRate($taxRate)
@@ -165,7 +199,7 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get tax_rate
+     * Get taxRate.
      *
      * @return string
      */
@@ -175,9 +209,10 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set tax_adjust
+     * Set taxAdjust.
      *
      * @param string $taxAdjust
+     *
      * @return TaxRule
      */
     public function setTaxAdjust($taxAdjust)
@@ -188,7 +223,7 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get tax_adjust
+     * Get taxAdjust.
      *
      * @return string
      */
@@ -198,9 +233,10 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set apply_date
+     * Set applyDate.
      *
      * @param \DateTime $applyDate
+     *
      * @return TaxRule
      */
     public function setApplyDate($applyDate)
@@ -211,7 +247,7 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get apply_date
+     * Get applyDate.
      *
      * @return \DateTime
      */
@@ -221,32 +257,10 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set del_flg
-     *
-     * @param integer $delFlg
-     * @return TaxRule
-     */
-    public function setDelFlg($delFlg)
-    {
-        $this->del_flg = $delFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get del_flg
-     *
-     * @return integer
-     */
-    public function getDelFlg()
-    {
-        return $this->del_flg;
-    }
-
-    /**
-     * Set create_date
+     * Set createDate.
      *
      * @param \DateTime $createDate
+     *
      * @return TaxRule
      */
     public function setCreateDate($createDate)
@@ -257,7 +271,7 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -267,9 +281,10 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
      * @param \DateTime $updateDate
+     *
      * @return TaxRule
      */
     public function setUpdateDate($updateDate)
@@ -280,7 +295,7 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -290,104 +305,10 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set productClass.
      *
-     * @param \Eccube\Entity\Member $creator
-     * @return TaxRule
-     */
-    public function setCreator(\Eccube\Entity\Member $creator)
-    {
-        $this->Creator = $creator;
-
-        return $this;
-    }
-
-    /**
-     * Get Creator
+     * @param \Eccube\Entity\ProductClass|null $productClass
      *
-     * @return \Eccube\Entity\Member
-     */
-    public function getCreator()
-    {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
-        return $this->Creator;
-    }
-
-    /**
-     * Set Country
-     *
-     * @param \Eccube\Entity\Master\Country $country
-     * @return TaxRule
-     */
-    public function setCountry(\Eccube\Entity\Master\Country $country = null)
-    {
-        $this->Country = $country;
-
-        return $this;
-    }
-
-    /**
-     * Get Country
-     *
-     * @return \Eccube\Entity\Master\Country
-     */
-    public function getCountry()
-    {
-        return $this->Country;
-    }
-
-    /**
-     * Set Pref
-     *
-     * @param \Eccube\Entity\Master\Pref $pref
-     * @return TaxRule
-     */
-    public function setPref(\Eccube\Entity\Master\Pref $pref = null)
-    {
-        $this->Pref = $pref;
-
-        return $this;
-    }
-
-    /**
-     * Get Pref
-     *
-     * @return \Eccube\Entity\Master\Pref
-     */
-    public function getPref()
-    {
-        return $this->Pref;
-    }
-
-    /**
-     * Set Product
-     *
-     * @param \Eccube\Entity\Product $product
-     * @return TaxRule
-     */
-    public function setProduct(\Eccube\Entity\Product $product = null)
-    {
-        $this->Product = $product;
-
-        return $this;
-    }
-
-    /**
-     * Get Product
-     *
-     * @return \Eccube\Entity\Product
-     */
-    public function getProduct()
-    {
-        return $this->Product;
-    }
-
-    /**
-     * Set ProductClass
-     *
-     * @param \Eccube\Entity\ProductClass $productClass
      * @return TaxRule
      */
     public function setProductClass(\Eccube\Entity\ProductClass $productClass = null)
@@ -398,9 +319,9 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get ProductClass
+     * Get productClass.
      *
-     * @return \Eccube\Entity\ProductClass
+     * @return \Eccube\Entity\ProductClass|null
      */
     public function getProductClass()
     {
@@ -408,26 +329,123 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set CalcRule
+     * Set creator.
      *
-     * @param \Eccube\Entity\Master\Taxrule $calcRule
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return TaxRule
      */
-    public function setCalcRule(\Eccube\Entity\Master\Taxrule $calcRule = null)
+    public function setCreator(\Eccube\Entity\Member $creator = null)
     {
-        $this->CalcRule = $calcRule;
+        $this->Creator = $creator;
 
         return $this;
     }
 
     /**
-     * Get CalcRule
+     * Get creator.
      *
-     * @return \Eccube\Entity\Master\Taxrule
+     * @return \Eccube\Entity\Member|null
      */
-    public function getCalcRule()
+    public function getCreator()
     {
-        return $this->CalcRule;
+        return $this->Creator;
+    }
+
+    /**
+     * Set country.
+     *
+     * @param \Eccube\Entity\Master\Country|null $country
+     *
+     * @return TaxRule
+     */
+    public function setCountry(\Eccube\Entity\Master\Country $country = null)
+    {
+        $this->Country = $country;
+
+        return $this;
+    }
+
+    /**
+     * Get country.
+     *
+     * @return \Eccube\Entity\Master\Country|null
+     */
+    public function getCountry()
+    {
+        return $this->Country;
+    }
+
+    /**
+     * Set pref.
+     *
+     * @param \Eccube\Entity\Master\Pref|null $pref
+     *
+     * @return TaxRule
+     */
+    public function setPref(\Eccube\Entity\Master\Pref $pref = null)
+    {
+        $this->Pref = $pref;
+
+        return $this;
+    }
+
+    /**
+     * Get pref.
+     *
+     * @return \Eccube\Entity\Master\Pref|null
+     */
+    public function getPref()
+    {
+        return $this->Pref;
+    }
+
+    /**
+     * Set product.
+     *
+     * @param \Eccube\Entity\Product|null $product
+     *
+     * @return TaxRule
+     */
+    public function setProduct(\Eccube\Entity\Product $product = null)
+    {
+        $this->Product = $product;
+
+        return $this;
+    }
+
+    /**
+     * Get product.
+     *
+     * @return \Eccube\Entity\Product|null
+     */
+    public function getProduct()
+    {
+        return $this->Product;
+    }
+
+    /**
+     * Set calcRule.
+     *
+     * @param \Eccube\Entity\Master\RoundingType|null $calcRule
+     *
+     * @return TaxRule
+     */
+    public function setRoundingType(\Eccube\Entity\Master\RoundingType $RoundingType = null)
+    {
+        $this->RoundingType = $RoundingType;
+
+        return $this;
+    }
+
+    /**
+     * Get calcRule.
+     *
+     * @return \Eccube\Entity\Master\RoundingType|null
+     */
+    public function getRoundingType()
+    {
+        return $this->RoundingType;
     }
 
     /**
@@ -440,20 +458,21 @@ class TaxRule extends \Eccube\Entity\AbstractEntity
      * 小さければ負の整数を返す.
      *
      * 1. apply_date
-     * 2. rank
+     * 2. sort_no
      *
      * このメソッドは usort() 関数などで使用する.
      *
      * @param TaxRule $Target 比較対象の TaxRule
+     *
      * @return integer
      */
     public function compareTo(TaxRule $Target)
     {
         if ($this->getApplyDate()->format('YmdHis') == $Target->getApplyDate()->format('YmdHis')) {
-            if ($this->getRank() == $Target->getRank()) {
+            if ($this->getSortNo() == $Target->getSortNo()) {
                 return 0;
             }
-            if ($this->getRank() > $Target->getRank()) {
+            if ($this->getSortNo() > $Target->getSortNo()) {
                 return -1;
             } else {
                 return 1;

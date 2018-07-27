@@ -1,55 +1,123 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * BlockPosition
+ *
+ * @ORM\Table(name="dtb_block_position")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\BlockPositionRepository")
  */
 class BlockPosition extends \Eccube\Entity\AbstractEntity
 {
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="page_id", type="integer", options={"unsigned":true}, nullable=true)
+     *
+     * @deprecated
      */
     private $page_id;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="section", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
      */
-    private $target_id;
+    private $section;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="block_id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
      */
     private $block_id;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="layout_id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
+     */
+    private $layout_id;
+
+    /**
+     * @var int|null
+     *
+     * @ORM\Column(name="block_row", type="integer", nullable=true, options={"unsigned":true})
      */
     private $block_row;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="anywhere", type="smallint", options={"default":0})
+     *
+     * @deprecated
      */
-    private $anywhere;
+    private $anywhere = 0;
 
     /**
      * @var \Eccube\Entity\Block
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Block", inversedBy="BlockPositions")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="block_id", referencedColumnName="id")
+     * })
      */
     private $Block;
 
     /**
      * @var \Eccube\Entity\PageLayout
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Page", inversedBy="BlockPositions")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="page_id", referencedColumnName="id")
+     * })
+     *
+     * @deprecated
      */
-    private $PageLayout;
-
+    private $Page;
 
     /**
-     * Set page_id
+     * @var \Eccube\Entity\Layout
      *
-     * @param integer $pageId
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Layout", inversedBy="BlockPositions")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="layout_id", referencedColumnName="id")
+     * })
+     */
+    private $Layout;
+
+    /**
+     * Set pageId.
+     *
+     * @param int $pageId
+     *
      * @return BlockPosition
+     *
+     * @deprecated
      */
     public function setPageId($pageId)
     {
@@ -59,9 +127,11 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get page_id
+     * Get pageId.
      *
-     * @return integer 
+     * @return int
+     *
+     * @deprecated
      */
     public function getPageId()
     {
@@ -69,32 +139,34 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set target_id
+     * Set section.
      *
-     * @param integer $targetId
+     * @param int $section
+     *
      * @return BlockPosition
      */
-    public function setTargetId($targetId)
+    public function setSection($section)
     {
-        $this->target_id = $targetId;
+        $this->section = $section;
 
         return $this;
     }
 
     /**
-     * Get target_id
+     * Get section.
      *
-     * @return integer 
+     * @return int
      */
-    public function getTargetId()
+    public function getSection()
     {
-        return $this->target_id;
+        return $this->section;
     }
 
     /**
-     * Set block_id
+     * Set blockId.
      *
-     * @param integer $blockId
+     * @param int $blockId
+     *
      * @return BlockPosition
      */
     public function setBlockId($blockId)
@@ -105,9 +177,9 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get block_id
+     * Get blockId.
      *
-     * @return integer 
+     * @return int
      */
     public function getBlockId()
     {
@@ -115,12 +187,37 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set block_row
+     * Set layoutId.
      *
-     * @param integer $blockRow
+     * @param int $layoutId
+     *
      * @return BlockPosition
      */
-    public function setBlockRow($blockRow)
+    public function setLayoutId($layoutId)
+    {
+        $this->layout_id = $layoutId;
+
+        return $this;
+    }
+
+    /**
+     * Get layoutId.
+     *
+     * @return int
+     */
+    public function getLayoutId()
+    {
+        return $this->layout_id;
+    }
+
+    /**
+     * Set blockRow.
+     *
+     * @param int|null $blockRow
+     *
+     * @return BlockPosition
+     */
+    public function setBlockRow($blockRow = null)
     {
         $this->block_row = $blockRow;
 
@@ -128,9 +225,9 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get block_row
+     * Get blockRow.
      *
-     * @return integer 
+     * @return int|null
      */
     public function getBlockRow()
     {
@@ -138,10 +235,13 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set anywhere
+     * Set anywhere.
      *
-     * @param integer $anywhere
+     * @param int $anywhere
+     *
      * @return BlockPosition
+     *
+     * @deprecated
      */
     public function setAnywhere($anywhere)
     {
@@ -151,9 +251,11 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get anywhere
+     * Get anywhere.
      *
-     * @return integer 
+     * @return int
+     *
+     * @deprecated
      */
     public function getAnywhere()
     {
@@ -161,12 +263,13 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Block
+     * Set block.
      *
-     * @param \Eccube\Entity\Block $block
+     * @param \Eccube\Entity\Block|null $block
+     *
      * @return BlockPosition
      */
-    public function setBlock(\Eccube\Entity\Block $block)
+    public function setBlock(\Eccube\Entity\Block $block = null)
     {
         $this->Block = $block;
 
@@ -174,9 +277,9 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Block
+     * Get block.
      *
-     * @return \Eccube\Entity\Block 
+     * @return \Eccube\Entity\Block|null
      */
     public function getBlock()
     {
@@ -184,25 +287,54 @@ class BlockPosition extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set PageLayout
+     * Set layout.
      *
-     * @param \Eccube\Entity\PageLayout $pageLayout
+     * @param \Eccube\Entity\Layout|null $layout
+     *
      * @return BlockPosition
      */
-    public function setPageLayout(\Eccube\Entity\PageLayout $pageLayout)
+    public function setLayout(\Eccube\Entity\Layout $Layout = null)
     {
-        $this->PageLayout = $pageLayout;
+        $this->Layout = $Layout;
 
         return $this;
     }
 
     /**
-     * Get PageLayout
+     * Get Layout.
      *
-     * @return \Eccube\Entity\PageLayout 
+     * @return \Eccube\Entity\Layout|null
      */
-    public function getPageLayout()
+    public function getLayout()
     {
-        return $this->PageLayout;
+        return $this->Layout;
+    }
+
+    /**
+     * Set pageLayout.
+     *
+     * @param \Eccube\Entity\Page|null $page
+     *
+     * @return BlockPosition
+     *
+     * @deprecated
+     */
+    public function setPage(\Eccube\Entity\Page $Page = null)
+    {
+        $this->Page = $Page;
+
+        return $this;
+    }
+
+    /**
+     * Get pageLayout.
+     *
+     * @return \Eccube\Entity\Page|null
+     *
+     * @deprecated
+     */
+    public function getPage()
+    {
+        return $this->Page;
     }
 }

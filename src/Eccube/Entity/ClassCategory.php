@@ -1,33 +1,28 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
-use Eccube\Util\EntityUtil;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * ClassCategory
+ *
+ * @ORM\Table(name="dtb_class_category")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\ClassCategoryRepository")
  */
 class ClassCategory extends \Eccube\Entity\AbstractEntity
 {
@@ -36,53 +31,77 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
      */
     public function __toString()
     {
-        return $this->getName();
+        return (string) $this->getName();
     }
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="name", type="string", length=255)
      */
     private $name;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="sort_no", type="integer")
      */
-    private $rank;
+    private $sort_no;
+
+    /**
+     * @var boolean
+     *
+     * @ORM\Column(name="visible", type="boolean", options={"default":true})
+     */
+    private $visible;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
     /**
-     * @var integer
-     */
-    private $del_flg;
-
-    /**
      * @var \Eccube\Entity\ClassName
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\ClassName", inversedBy="ClassCategories")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="class_name_id", referencedColumnName="id")
+     * })
      */
     private $ClassName;
 
     /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -90,9 +109,10 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set name
+     * Set name.
      *
-     * @param  string        $name
+     * @param string $name
+     *
      * @return ClassCategory
      */
     public function setName($name)
@@ -103,7 +123,7 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get name
+     * Get name.
      *
      * @return string
      */
@@ -113,32 +133,34 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set rank
+     * Set sortNo.
      *
-     * @param  integer       $rank
+     * @param int $sortNo
+     *
      * @return ClassCategory
      */
-    public function setRank($rank)
+    public function setSortNo($sortNo)
     {
-        $this->rank = $rank;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get rank
+     * Get sortNo.
      *
-     * @return integer
+     * @return int
      */
-    public function getRank()
+    public function getSortNo()
     {
-        return $this->rank;
+        return $this->sort_no;
     }
 
     /**
-     * Set create_date
+     * Set createDate.
      *
-     * @param  \DateTime     $createDate
+     * @param \DateTime $createDate
+     *
      * @return ClassCategory
      */
     public function setCreateDate($createDate)
@@ -149,7 +171,7 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -159,9 +181,10 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
-     * @param  \DateTime     $updateDate
+     * @param \DateTime $updateDate
+     *
      * @return ClassCategory
      */
     public function setUpdateDate($updateDate)
@@ -172,7 +195,7 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -182,35 +205,13 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set del_flg
+     * Set className.
      *
-     * @param  integer       $delFlg
+     * @param \Eccube\Entity\ClassName|null $className
+     *
      * @return ClassCategory
      */
-    public function setDelFlg($delFlg)
-    {
-        $this->del_flg = $delFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get del_flg
-     *
-     * @return integer
-     */
-    public function getDelFlg()
-    {
-        return $this->del_flg;
-    }
-
-    /**
-     * Set ClassName
-     *
-     * @param  \Eccube\Entity\ClassName $className
-     * @return ClassCategory
-     */
-    public function setClassName(\Eccube\Entity\ClassName $className)
+    public function setClassName(\Eccube\Entity\ClassName $className = null)
     {
         $this->ClassName = $className;
 
@@ -218,9 +219,9 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get ClassName
+     * Get className.
      *
-     * @return \Eccube\Entity\ClassName
+     * @return \Eccube\Entity\ClassName|null
      */
     public function getClassName()
     {
@@ -228,12 +229,13 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set creator.
      *
-     * @param  \Eccube\Entity\Member $creator
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return ClassCategory
      */
-    public function setCreator(\Eccube\Entity\Member $creator)
+    public function setCreator(\Eccube\Entity\Member $creator = null)
     {
         $this->Creator = $creator;
 
@@ -241,15 +243,36 @@ class ClassCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Creator
+     * Get creator.
      *
-     * @return \Eccube\Entity\Member
+     * @return \Eccube\Entity\Member|null
      */
     public function getCreator()
     {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
         return $this->Creator;
+    }
+
+    /**
+     * Set visible
+     *
+     * @param boolean $visible
+     *
+     * @return ClassCategory
+     */
+    public function setVisible($visible)
+    {
+        $this->visible = $visible;
+
+        return $this;
+    }
+
+    /**
+     * Is the visibility visible?
+     *
+     * @return boolean
+     */
+    public function isVisible()
+    {
+        return $this->visible;
     }
 }

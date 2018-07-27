@@ -1,629 +1,193 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * PageLayout
+ *
+ * @ORM\Table(name="dtb_page_layout")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\PageLayoutRepository")
  */
-class PageLayout extends \Eccube\Entity\AbstractEntity
+class PageLayout extends AbstractEntity
 {
-    // 配置ID
-    /** 配置ID: 未使用 */
-    const TARGET_ID_UNUSED = 0;
-    const TARGET_ID_HEAD = 1;
-    const TARGET_ID_HEADER = 2;
-    const TARGET_ID_CONTENTS_TOP = 3;
-    const TARGET_ID_SIDE_LEFT = 4;
-    const TARGET_ID_MAIN_TOP = 5;
-    const TARGET_ID_MAIN_BOTTOM = 6;
-    const TARGET_ID_SIDE_RIGHT = 7;
-    const TARGET_ID_CONTENTS_BOTTOM = 8;
-    const TARGET_ID_FOOTER = 9;
-
-    // 編集可能フラグ
-    const EDIT_FLG_USER = 0;
-    const EDIT_FLG_PREVIEW = 1;
-    const EDIT_FLG_DEFAULT = 2;
-
     /**
-     * Get ColumnNum
+     * @var integer
      *
-     * @return integer
+     * @ORM\Column(name="page_id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
      */
-    public function getColumnNum()
-    {
-        return 1 + ($this->getSideLeft() ? 1 : 0) + ($this->getSideRight() ? 1 : 0);
-    }
-
-    public function getTheme()
-    {
-        $hasLeft = $this->getSideLeft() ? true : false;
-        $hasRight = $this->getSideRight() ? true : false;
-
-        $theme = 'theme_main_only';
-        if ($hasLeft && $hasRight) {
-            $theme = 'theme_side_both';
-        } elseif ($hasLeft) {
-            $theme = 'theme_side_left';
-        } elseif ($hasRight) {
-            $theme = 'theme_side_right';
-        }
-
-        return $theme;
-    }
-
-    /**
-     * Get BlockPositionByTargetId
-     *
-     * @param integer $target_id
-     * @return \Eccube\Entity\BlockPosition
-     */
-    public function getBlocksPositionByTargetId($target_id)
-    {
-        $BlockPositions = array();
-        foreach ($this->getBlockPositions() as $BlockPosition) {
-            if ($BlockPosition->getTargetId() === $target_id) {
-                $BlockPositions[] = $BlockPosition;
-            }
-        }
-
-        return $BlockPositions;
-    }
-
-    public function getUnusedPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_UNUSED);
-    }
-
-    public function getHeadPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_HEAD);
-    }
-
-    public function getHeaderPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_HEADER);
-    }
-
-    public function getContentsTopPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_CONTENTS_TOP);
-    }
-
-    public function getSideLeftPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_SIDE_LEFT);
-    }
-
-    public function getMainTopPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_MAIN_TOP);
-    }
-
-    public function getMainBottomPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_MAIN_BOTTOM);
-    }
-
-    public function getSideRightPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_SIDE_RIGHT);
-    }
-
-    public function getContentsBottomPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_CONTENTS_BOTTOM);
-    }
-
-    public function getFooterPosition()
-    {
-        return $this->getBlocksPositionByTargetId(self::TARGET_ID_FOOTER);
-    }
-
-    /**
-     * Get BlocsByTargetId
-     *
-     * @param integer $target_id
-     * @return \Eccube\Entity\Bloc[]
-     */
-    public function getBlocksByTargetId($target_id)
-    {
-        $Blocks = array();
-        foreach ($this->getBlockPositions() as $BlockPositions) {
-            if ($BlockPositions->getTargetId() === $target_id) {
-                $Blocks[] = $BlockPositions->getBlock();
-            }
-        }
-        return $Blocks;
-    }
-
-    public function getUnused()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_UNUSED);
-    }
-
-    public function getHead()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_HEAD);
-    }
-
-    public function getHeader()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_HEADER);
-    }
-
-    public function getContentsTop()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_CONTENTS_TOP);
-    }
-
-    public function getSideLeft()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_SIDE_LEFT);
-    }
-
-    public function getMainTop()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_MAIN_TOP);
-    }
-
-    public function getMainBottom()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_MAIN_BOTTOM);
-    }
-
-    public function getSideRight()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_SIDE_RIGHT);
-    }
-
-    public function getContentsBottom()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_CONTENTS_BOTTOM);
-    }
-
-    public function getFooter()
-    {
-        return $this->getBlocksByTargetId(self::TARGET_ID_FOOTER);
-    }
-
+    private $page_id;
 
     /**
      * @var integer
-     */
-    private $id;
-
-    /**
-     * @var string
-     */
-    private $name;
-
-    /**
-     * @var string
-     */
-    private $url;
-
-    /**
-     * @var string
-     */
-    private $file_name;
-
-    /**
-     * @var integer
-     */
-    private $edit_flg;
-
-    /**
-     * @var string
-     */
-    private $author;
-
-    /**
-     * @var string
-     */
-    private $description;
-
-    /**
-     * @var string
-     */
-    private $keyword;
-
-    /**
-     * @var string
-     */
-    private $update_url;
-
-    /**
-     * @var \DateTime
-     */
-    private $create_date;
-
-    /**
-     * @var \DateTime
-     */
-    private $update_date;
-
-    /**
-     * @var string
-     */
-    private $meta_robots;
-    
-    /**
-     * @var string
-     */
-    private $meta_tags;
-
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     */
-    private $BlockPositions;
-
-    /**
-     * @var \Eccube\Entity\Master\DeviceType
-     */
-    private $DeviceType;
-
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        $this->BlockPositions = new \Doctrine\Common\Collections\ArrayCollection();
-    }
-
-    /**
-     * Set id
      *
-     * @param integer $id
+     * @ORM\Column(name="layout_id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
+     */
+    private $layout_id;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="sort_no", type="smallint", options={"unsigned":true})
+     */
+    private $sort_no;
+
+    /**
+     * @var \Eccube\Entity\Page
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Page", inversedBy="PageLayouts")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="page_id", referencedColumnName="id")
+     * })
+     */
+    private $Page;
+
+    /**
+     * @var \Eccube\Entity\Layout
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Layout", inversedBy="PageLayouts")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="layout_id", referencedColumnName="id")
+     * })
+     */
+    private $Layout;
+
+    /**
+     * Set pageId
+     *
+     * @param integer $pageId
+     *
      * @return PageLayout
      */
-    public function setId($id)
+    public function setPageId($pageId)
     {
-        $this->id = $id;
+        $this->page_id = $pageId;
 
         return $this;
     }
+
     /**
-     * Get id
+     * Get pageId
      *
      * @return integer
      */
-    public function getId()
+    public function getPageId()
     {
-        return $this->id;
+        return $this->page_id;
     }
 
     /**
-     * Set name
+     * Set layoutId
      *
-     * @param string $name
+     * @param integer $layoutId
+     *
      * @return PageLayout
      */
-    public function setName($name)
+    public function setLayoutId($layoutId)
     {
-        $this->name = $name;
+        $this->layout_id = $layoutId;
 
         return $this;
     }
 
     /**
-     * Get name
-     *
-     * @return string
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * Set url
-     *
-     * @param string $url
-     * @return PageLayout
-     */
-    public function setUrl($url)
-    {
-        $this->url = $url;
-
-        return $this;
-    }
-
-    /**
-     * Get url
-     *
-     * @return string
-     */
-    public function getUrl()
-    {
-        return $this->url;
-    }
-
-    /**
-     * Set file_name
-     *
-     * @param string $fileName
-     * @return PageLayout
-     */
-    public function setFileName($fileName)
-    {
-        $this->file_name = $fileName;
-
-        return $this;
-    }
-
-    /**
-     * Get file_name
-     *
-     * @return string
-     */
-    public function getFileName()
-    {
-        return $this->file_name;
-    }
-
-    /**
-     * Set edit_flg
-     *
-     * @param integer $editFlg
-     * @return PageLayout
-     */
-    public function setEditFlg($editFlg)
-    {
-        $this->edit_flg = $editFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get edit_flg
+     * Get layoutId
      *
      * @return integer
      */
-    public function getEditFlg()
+    public function getLayoutId()
     {
-        return $this->edit_flg;
+        return $this->layout_id;
     }
 
     /**
-     * Set author
+     * Set sort_no
      *
-     * @param string $author
-     * @return PageLayout
+     * @param int $sortNo
+     *
+     * @return Page
      */
-    public function setAuthor($author)
+    public function setSortNo($sortNo)
     {
-        $this->author = $author;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get author
+     * Get sort_no
      *
-     * @return string
+     * @return int
      */
-    public function getAuthor()
+    public function getSortNo()
     {
-        return $this->author;
+        return $this->sort_no;
     }
 
     /**
-     * Set description
+     * Set pageLayout
      *
-     * @param string $description
+     * @param \Eccube\Entity\Page $page
+     *
      * @return PageLayout
      */
-    public function setDescription($description)
+    public function setPage(\Eccube\Entity\Page $Page = null)
     {
-        $this->description = $description;
+        $this->Page = $Page;
 
         return $this;
     }
 
     /**
-     * Get description
+     * Get pageLayout
      *
-     * @return string
+     * @return \Eccube\Entity\PageLayout
      */
-    public function getDescription()
+    public function getPage()
     {
-        return $this->description;
+        return $this->Page;
     }
 
     /**
-     * Set keyword
+     * Set layout
      *
-     * @param string $keyword
+     * @param \Eccube\Entity\Layout $layout
+     *
      * @return PageLayout
      */
-    public function setKeyword($keyword)
+    public function setLayout(\Eccube\Entity\Layout $layout = null)
     {
-        $this->keyword = $keyword;
+        $this->Layout = $layout;
 
         return $this;
     }
 
     /**
-     * Get keyword
+     * Get layout
      *
-     * @return string
+     * @return \Eccube\Entity\Layout
      */
-    public function getKeyword()
+    public function getLayout()
     {
-        return $this->keyword;
-    }
-
-    /**
-     * Set update_url
-     *
-     * @param string $updateUrl
-     * @return PageLayout
-     */
-    public function setUpdateUrl($updateUrl)
-    {
-        $this->update_url = $updateUrl;
-
-        return $this;
-    }
-
-    /**
-     * Get update_url
-     *
-     * @return string
-     */
-    public function getUpdateUrl()
-    {
-        return $this->update_url;
-    }
-
-    /**
-     * Set create_date
-     *
-     * @param \DateTime $createDate
-     * @return PageLayout
-     */
-    public function setCreateDate($createDate)
-    {
-        $this->create_date = $createDate;
-
-        return $this;
-    }
-
-    /**
-     * Get create_date
-     *
-     * @return \DateTime
-     */
-    public function getCreateDate()
-    {
-        return $this->create_date;
-    }
-
-    /**
-     * Set update_date
-     *
-     * @param \DateTime $updateDate
-     * @return PageLayout
-     */
-    public function setUpdateDate($updateDate)
-    {
-        $this->update_date = $updateDate;
-
-        return $this;
-    }
-
-    /**
-     * Get update_date
-     *
-     * @return \DateTime
-     */
-    public function getUpdateDate()
-    {
-        return $this->update_date;
-    }
-
-    /**
-     * Set meta_robots
-     *
-     * @param string $metaRobots
-     * @return PageLayout
-     */
-    public function setMetaRobots($metaRobots)
-    {
-        $this->meta_robots = $metaRobots;
-
-        return $this;
-    }
-
-    /**
-     * Get meta_robots
-     *
-     * @return string
-     */
-    public function getMetaRobots()
-    {
-        return $this->meta_robots;
-    }
-    
-    /**
-     * Set meta_tags
-     *
-     * @param string $metaTags
-     * @return PageLayout
-     */
-    public function setMetaTags($metaTags)
-    {
-        $this->meta_tags = $metaTags;
-
-        return $this;
-    }
-
-    /**
-     * Get meta_tags
-     *
-     * @return string
-     */
-    public function getMetaTags()
-    {
-        return $this->meta_tags;
-    }
-
-    /**
-     * Add BlockPosition
-     *
-     * @param \Eccube\Entity\BlockPosition $blockPosition
-     * @return PageLayout
-     */
-    public function addBlockPosition(\Eccube\Entity\BlockPosition $blockPosition)
-    {
-        $this->BlockPositions[] = $blockPosition;
-
-        return $this;
-    }
-
-    /**
-     * Remove BlockPosition
-     *
-     * @param \Eccube\Entity\BlockPosition $blockPosition
-     */
-    public function removeBlockPosition(\Eccube\Entity\BlockPosition $blockPosition)
-    {
-        $this->BlockPositions->removeElement($blockPosition);
-    }
-
-    /**
-     * Get BlockPositions
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getBlockPositions()
-    {
-        return $this->BlockPositions;
-    }
-
-    /**
-     * Set DeviceType
-     *
-     * @param \Eccube\Entity\Master\DeviceType $deviceType
-     * @return PageLayout
-     */
-    public function setDeviceType(\Eccube\Entity\Master\DeviceType $deviceType = null)
-    {
-        $this->DeviceType = $deviceType;
-
-        return $this;
-    }
-
-    /**
-     * Get DeviceType
-     *
-     * @return \Eccube\Entity\Master\DeviceType
-     */
-    public function getDeviceType()
-    {
-        return $this->DeviceType;
+        return $this->Layout;
     }
 }

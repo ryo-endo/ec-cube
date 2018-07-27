@@ -1,23 +1,12 @@
 {#
 This file is part of EC-CUBE
 
-Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
 
 http://www.lockon.co.jp/
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
 #}
 {% extends 'default_frame.twig' %}
 
@@ -30,20 +19,20 @@ $(function() {
         var itemIdx = 0;
         var item = $('#item' + idx);
         var row = $('#item' + idx + '-0');
-        
+
         // 既存のお届け先のrowをコピーして雛形とする
         var addrow = $(row).clone();
-        
+
         // 追加する要素のIndexを決定
         item.find('.shipping_item').each(function() {
             itemIdx = $(this).attr('data-itemidx');
         });
         itemIdx = 1 + parseInt(itemIdx);
-        
+
         // 行のID設定
         addrow.attr('id', 'item' + idx + '-' + itemIdx);
         addrow.attr('data-itemidx', itemIdx);
-        
+
         // お届け先セレクトボックスのIDとNAME設定
         addrow.find('select').attr('name', 'form[shipping_multiple][' + idx + '][shipping][' + itemIdx + '][customer_address]');
         addrow.find('select').attr('id', 'form_shipping_multiple_' + idx + '_shipping_' + itemIdx + '_customer_address');
@@ -61,7 +50,7 @@ $(function() {
             $(this).data('itemidx', idx + '-' + itemIdx);
             $(this).removeAttr('style');
         });
-        
+
         $(item).append($(addrow));
     });
 
@@ -76,6 +65,36 @@ $(function() {
 
 {% block main %}
     <h1 class="page-heading">お届け先の複数指定</h1>
+    {# TODO エラーメッセージ #}
+    <div id="confirm_flow_box" class="row">
+        <div id="confirm_flow_box__body" class="col-md-12">
+            {% for error in app.session.flashbag.get('eccube.front.error')  %}
+                <div id="confirm_flow_box__message" class="message">
+                    <p class="errormsg bg-danger">
+                        <svg class="cb cb-warning"><use xlink:href="#cb-warning" /></svg>{{ error|trans|nl2br }}
+                    </p>
+                </div>
+            {% endfor %}
+            {% set productStr = app.session.flashbag.get('eccube.front.request.product') %}
+            {% for error in app.session.flashbag.get('eccube.front.request.error')  %}
+                {% set idx = loop.index0 %}
+                {% if productStr[idx] is defined %}
+                    <div id="cart_box__message--{{ loop.index }}" class="message">
+                        <p class="errormsg bg-danger">
+                            <svg class="cb cb-warning"><use xlink:href="#cb-warning" /></svg>
+                            {{ error|trans({'%product%':productStr[idx]})|nl2br }}
+                        </p>
+                    </div>
+                {% else %}
+                    <div id="confirm_flow_box__message--{{ loop.index }}" class="message">
+                        <p class="errormsg bg-danger">
+                            <svg class="cb cb-warning"><use xlink:href="#cb-warning" /></svg>{{ error|trans|nl2br }}
+                        </p>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div><!-- /.col -->
+    </div><!-- /.row -->
     <div id="multiple_wrap" class="container-fluid">
         <form id="shipping-multiple-form" method="post" action="{{ url('shopping_shipping_multiple') }}">
             {{ form_widget(form._token) }}
@@ -87,12 +106,9 @@ $(function() {
                         <div class="text-danger">{{ error.message }}</div>
                     {% endfor %}
 
-                    {% if is_granted('ROLE_USER') %}
-                    {% else %}
-                        <p><a href="{{ url('shopping_shipping_multiple_edit') }}" class="btn btn-default btn-sm">新規お届け先を追加する</a></p>
-                    {% endif %}
+                    <p><a href="{{ url('shopping_shipping_multiple_edit') }}" class="btn btn-default btn-sm">{{'mypage.label.add_address'|trans}}</a></p>
 
-                    {% for shipmentItem in shipmentItems %}
+                    {% for orderItem in OrderItems %}
                         {% set idx = loop.index0 %}
                         {% set itemvalue = 0 %}
                         <hr>
@@ -100,26 +116,26 @@ $(function() {
                             <div id="multiple_list__item_box__body--{{ idx }}" class="tbody">
                                 <div id="multiple_list__item_box_body_inner--{{ idx }}" class="item_box tr">
                                     <div id="multiple_list__item--{{ idx }}" class="td table">
-                                        <div id="multiple_list__image--{{ idx }}" class="item_photo"><img src="{{ app.config.image_save_urlpath }}/{{ shipmentItem.product.MainListImage|no_image_product }}" alt="{{ shipmentItem.productName }}"/></div>
+                                        <div id="multiple_list__image--{{ idx }}" class="item_photo"><img src="{{ asset(orderItem.product.MainListImage|no_image_product, 'save_image') }}" alt="{{ orderItem.productName }}"/></div>
                                         <dl id="multiple_list__item_detail--{{ idx }}" class="item_detail">
                                             <dt id="multiple_list__product_name--{{ idx }}" class="item_name text-default">
-                                                <strong>{{ shipmentItem.productName }}</strong></dt>
+                                                <strong>{{ orderItem.productName }}</strong></dt>
                                             <dd id="multiple_list__product_class_category--{{ idx }}" class="item_pattern small">
                                                 <p>
-                                                    {% if shipmentItem.productClass.classCategory1 %}
-                                                        {{ shipmentItem.productClass.classCategory1.className }}：{{ shipmentItem.productClass.classCategory1 }}
+                                                    {% if orderItem.productClass.classCategory1 %}
+                                                        {{ orderItem.productClass.classCategory1.className.name }}：{{ orderItem.productClass.classCategory1 }}
                                                         <br>
                                                     {% endif %}
-                                                    {% if shipmentItem.productClass.classCategory2 %}
-                                                        {{ shipmentItem.productClass.classCategory2.className }}：{{ shipmentItem.productClass.classCategory2 }}
+                                                    {% if orderItem.productClass.classCategory2 %}
+                                                        {{ orderItem.productClass.classCategory2.className.name }}：{{ orderItem.productClass.classCategory2 }}
                                                         <br>
                                                     {% endif %}
                                                 </p>
                                             </dd>
-                                            <dd id="multiple_list__total_price--{{ idx }}">小計：{{ shipmentItem.totalPrice|price }}</dd>
+                                            <dd id="multiple_list__total_price--{{ idx }}">小計：{{ orderItem.totalPrice|price }}</dd>
                                             {% for key, value in compItemQuantities %}
-                                                {% if shipmentItem.productClass.id == key %}
-                                                    <dd id="multiple_list__value--{{ idx }}_{{ key }}">数量：{{ value }}</dd>
+                                                {% if orderItem.productClass.id == key %}
+                                                    <dd id="multiple_list__value--{{ idx }}_{{ key }}">{{'common.label.qty'|trans}}：{{ value }}</dd>
                                                     {% set itemvalue = value %}
                                                 {% endif %}
                                             {% endfor %}
@@ -141,14 +157,14 @@ $(function() {
                                     <div id="multiple_list__shipping_quantity--{{ idx }}_{{ loop.index0 }}" class="form-group">
                                         <label>数量</label>
                                         {% for key, value in compItemQuantities %}
-                                            {% if shipmentItem.productClass.id == key %}
+                                            {% if orderItem.productClass.id == key %}
                                                 {% set quantity = shipping.quantity.vars.value ?: value %}
                                                 {{ form_widget(shipping.quantity, {'attr': {'class': 'quantity'}, 'value': quantity}) }}
                                                 {{ form_errors(shipping.quantity) }}
                                             {% endif %}
                                         {% endfor %}
                                     </div>
-                                    <button id="button__delete--{{ idx }}_{{ loop.index0 }}" type="button" class="btn btn-default btn-sm delete" data-itemidx="{{ idx }}-{{ loop.index0 }}" style="{% if loop.index0 == 0 %}display: none;{% endif %}">削除</button>
+                                    <button id="button__delete--{{ idx }}_{{ loop.index0 }}" type="button" class="btn btn-default btn-sm delete" data-itemidx="{{ idx }}-{{ loop.index0 }}" style="{% if loop.index0 == 0 %}display: none;{% endif %}">{{'common.label.delete'|trans}}</button>
                                 </div>
                             {% endfor %}
                         </div>
@@ -156,19 +172,12 @@ $(function() {
                             <button id="button__add{{ idx }}" type="button" class="btn btn-default btn-sm add" data-idx="{{ idx }}">お届け先追加</button>
                         </p>
                     {% endfor %}
-                    <div class="extra-form">
-                        {% for f in form %}
-                            {% if f.vars.name matches '[^plg*]' %}
-                                {{ form_row(f) }}
-                            {% endif %}
-                        {% endfor %}
-                    </div>
                     <div id="multiple_list__footer" class="row no-padding">
                         <div id="multiple_list__button_menu" class="btn_group col-sm-offset-4 col-sm-4">
                             <p id="multiple_list__confirm_button">
                                 <button id="button__confirm" type="submit" class="btn btn-primary btn-block">選択したお届け先に送る</button>
                             </p>
-                            <p id="multiple_list__back_button"><a href="{{ url('shopping') }}" class="btn btn-info btn-block">戻る</a></p>
+                            <p id="multiple_list__back_button"><a href="{{ url('shopping') }}" class="btn btn-info btn-block">{{'common.label.btn.go_back'|trans}}</a></p>
                         </div>
                     </div>
 

@@ -1,0 +1,66 @@
+{#
+This file is part of EC-CUBE
+
+Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+
+http://www.lockon.co.jp/
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+#}
+{% extends 'old_frame.twig' %}
+
+{% set menus = ['store', 'plugin', 'plugin_list'] %}
+
+{% block title %}{{'admin.store.plugin_confirm_uninstall.823'|trans}}{% endblock %}
+{% block sub_title %}{{'admin.store.plugin_confirm_uninstall.824'|trans}}{% endblock %}
+
+{% block javascript %}
+    <script src="{{ app.config.admin_urlpath }}/assets/js/vendor/masonry.pkgd.min.js"></script>
+    <script>
+        $(function() {
+            $('.grid').masonry({
+                itemSelector: '.grid-item',
+                columnWidth: '.grid-item'
+            });
+        });
+    </script>
+{% endblock javascript %}
+
+{% block main %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">{{'admin.store.plugin_confirm_uninstall.825'|trans}}</h3>
+                </div><!-- /.box-header -->
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <div class="plugin-block">
+                                <div class="row grid">
+                                    <div class="col-xs-12 grid-item">
+                                        {{ include('Store/plugin_confirm_uninstall_panel.twig') }}
+                                    </div>
+                                </div><!-- .row -->
+                            </div><!-- .plugin-block -->
+                        </div><!-- .col-xs-12 -->
+                    </div><!-- .row -->
+                </div><!-- /.box-body 1 -->
+
+                <div class="box-footer">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <span class="pull-right">
+                                <a class="btn btn-warning btn-xs prevention-mask" href="{{ url('admin_store_plugin_api_uninstall', {'id': item.id}) }}" {{ csrf_token_for_anchor() }} data-method="delete" data-confirm="false">{{'common.label.delete'|trans}}</a>
+                                <button class="btn btn-cancel btn-xs" type="button" onclick="return window.history.back()">{{'admin.store.plugin_confirm_uninstall.827'|trans}}</button>
+                            </span>
+                        </div>
+                    </div>
+                </div><!-- /.box-footer -->
+
+            </div><!-- /.box 1-->
+
+        </div><!-- /.col -->
+    </div>
+{% endblock %}

@@ -1,16 +1,20 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Tests\Repository;
 
-use Eccube\Tests\EccubeTestCase;
-use Eccube\Application;
-use Eccube\Common\Constant;
-use Eccube\Entity\Product;
-use Eccube\Entity\ProductClass;
-use Eccube\Entity\ProductImage;
-use Eccube\Entity\ProductStock;
-use Doctrine\ORM\NoResultException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Eccube\Repository\Master\ProductStatusRepository;
+use Eccube\Entity\Master\ProductStatus;
 
 /**
  * ProductRepository test cases.
@@ -19,46 +23,36 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class ProductRepositoryTest extends AbstractProductRepositoryTestCase
 {
+    /**
+     * @var ProductStatusRepository
+     */
+    protected $productStatusRepository;
 
-    public function testGet()
+    /**
+     * {@inheritdoc}
+     */
+    public function setUp()
     {
-        $Product = $this->app['eccube.repository.product']->findOneBy(
-            array('name' => '商品-1')
-        );
-        $product_id = $Product->getId();
-        $Result = $this->app['eccube.repository.product']->get($product_id);
+        parent::setUp();
 
-        $this->expected = $product_id;
-        $this->actual = $Result->getId();
-        $this->verify();
-    }
-
-    public function testGetWithException()
-    {
-        try {
-            $Product = $this->app['eccube.repository.product']->get(9999);
-            $this->fail();
-        } catch (NotFoundHttpException $e) {
-            $this->expected = 404;
-            $this->actual = $e->getStatusCode();
-        }
-        $this->verify();
+        $this->productStatusRepository = $this->container->get(ProductStatusRepository::class);
     }
 
     public function testGetFavoriteProductQueryBuilderByCustomer()
     {
+        $this->markTestSkipped(get_class($this).' getFavoriteProductQueryBuilderByCustomer is deprecated since 3.1');
         $Customer = $this->createCustomer();
-        $this->app['orm.em']->persist($Customer);
+        $this->entityManager->persist($Customer);
 
         $this->createFavorites($Customer);
 
         // 3件中, 1件は非表示にしておく
-        $Disp = $this->app['eccube.repository.master.disp']->find(\Eccube\Entity\Master\Disp::DISPLAY_HIDE);
-        $Products = $this->app['eccube.repository.product']->findAll();
-        $Products[0]->setStatus($Disp);
-        $this->app['orm.em']->flush();
+        $ProductStatus = $this->productStatusRepository->find(ProductStatus::DISPLAY_HIDE);
+        $Products = $this->productRepository->findAll();
+        $Products[0]->setStatus($ProductStatus);
+        $this->entityManager->flush();
 
-        $qb = $this->app['eccube.repository.product']->getFavoriteProductQueryBuilderByCustomer($Customer);
+        $qb = $this->productRepository->getFavoriteProductQueryBuilderByCustomer($Customer);
         $Favorites = $qb
             ->getQuery()
             ->getResult();

@@ -32,8 +32,8 @@
     //指定されたidの削除を行うページを実行する。
     eccube.deleteMember = function(id, pageno, lastAdminFlag) {
         var url = "./delete.php?id=" + id + "&pageno=" + pageno;
-        var message = lastAdminFlag ? 
-        '警告: 管理者がいなくなってしまいますと、システム設定などの操作が行えなくりますが宜しいでしょうか' 
+        var message = lastAdminFlag ?
+        '警告: 管理者がいなくなってしまいますと、システム設定などの操作が行えなくりますが宜しいでしょうか'
         : '登録内容を削除しても宜しいでしょうか';
         if(window.confirm(message)){
             location.href = url;
@@ -205,7 +205,40 @@
         eccube.fileManager.treeStatusHidden = treeHidden;
         eccube.fileManager.modeHidden = mode;
 
-        var id, level, old_id, old_level, tmp_level, rank_img, display, arrFileSplit, file_name, folder_img;
+        var tmp = [];
+        $.each(arrTree, function (key, value) {
+            arrTree[key]['path'] = value[2];
+            arrTree[key]['depth'] = value[3];
+            arrTree[key]['name'] = value['path'].split('/').slice(-1).pop();
+            arrTree[key]['name'] = arrTree[key]['name'] ? arrTree[key]['name'] : 'user_data';
+            arrTree[key]['children'] = [];
+            if (tmp[value['depth']] === undefined) {
+                tmp[value['depth']] = [value];
+            } else {
+                tmp[value['depth']].push(value);
+            }
+        });
+
+        var i = tmp.length - 1;
+        for (i; i>0; i--) {
+            var j = i - 1;
+            $.each(tmp[i], function (iKey, iValue) {
+                $.each(tmp[j], function (jKey, jValue) {
+                    if (iValue[2].indexOf(jValue[2]) === 0) {
+                        jValue['children'].push(iValue);
+                        return false;
+                    }
+                });
+            });
+            delete tmp[i];
+        }
+        var rootNode = tmp[0][0];
+        var li = eccube.fileManager.buildDirectoryNode(rootNode['name'], rootNode['path'], rootNode['children'], openFolder);
+        eccube.fileManager.tree = li.html();
+        $('#'+view_id).html(li);
+
+        /** FIXME: will be remove comment when solution accepted
+        var id, level, old_id, old_level, tmp_level, sort_no_img, display, arrFileSplit, file_name, folder_img;
 
         for(var i = 0; i < arrTree.length; i++) {
             id = arrTree[i][0];
@@ -223,62 +256,110 @@
             if(level <= (old_level - 1)) {
                 tmp_level = old_level - level;
                 for(var up_roop = 0; up_roop <= tmp_level; up_roop++) {
-                    eccube.fileManager.tree += '</div>';
+                    eccube.fileManager.tree += '</label>';
                 }
             }
 
             // 同一階層で次のフォルダへ
             if(id !== old_id && level === old_level) {
-                eccube.fileManager.tree += '</div>';
+                eccube.fileManager.tree += '</label>';
             }
 
-            // 階層の分だけスペースを入れる
-            for(var space_cnt = 0; space_cnt < arrTree[i][3]; space_cnt++) {
-                eccube.fileManager.tree += "&nbsp;&nbsp;&nbsp;";
-            }
+            // // 階層の分だけスペースを入れる
+            // for(var space_cnt = 0; space_cnt < arrTree[i][3]; space_cnt++) {
+            //     eccube.fileManager.tree += "&nbsp;&nbsp;&nbsp;";
+            // }
 
             // 階層画像の表示・非表示処理
-            if(arrTree[i][4]) {
-                if(arrTree[i][1] === '_parent') {
-                    rank_img = eccube.fileManager.IMG_MINUS;
-                } else {
-                    rank_img = eccube.fileManager.IMG_NORMAL;
-                }
-                // 開き状態を保持
-                eccube.fileManager.arrTreeStatus.push(arrTree[i][2]);
-                display = 'block';
-            } else {
-                if(arrTree[i][1] === '_parent') {
-                    rank_img = eccube.fileManager.IMG_PLUS;
-                } else {
-                    rank_img = eccube.fileManager.IMG_NORMAL;
-                }
-                display = 'none';
-            }
+            // if(arrTree[i][4]) {
+            //     if(arrTree[i][1] === '_parent') {
+            //         sort_no_img = eccube.fileManager.IMG_MINUS;
+            //     } else {
+            //         sort_no_img = eccube.fileManager.IMG_NORMAL;
+            //     }
+            //     // 開き状態を保持
+            //     eccube.fileManager.arrTreeStatus.push(arrTree[i][2]);
+            //     display = 'block';
+            // } else {
+            //     if(arrTree[i][1] === '_parent') {
+            //         sort_no_img = eccube.fileManager.IMG_PLUS;
+            //     } else {
+            //         sort_no_img = eccube.fileManager.IMG_NORMAL;
+            //     }
+            //     display = 'none';
+            // }
 
-            arrFileSplit = arrTree[i][2].split("/");
+          arrFileSplit = arrTree[i][2].split("/");
+
             file_name = arrFileSplit[arrFileSplit.length-1];
+          file_name = file_name ? file_name : 'user_data';
 
-            // フォルダの画像を選択
+          // フォルダの画像を選択
             if(arrTree[i][2] === openFolder) {
-                folder_img = eccube.fileManager.IMG_FOLDER_OPEN;
-                file_name = "<b>" + file_name + "</b>";
+                //folder_img = eccube.fileManager.IMG_FOLDER_OPEN;
+              folder_img = 'collapsed';
             } else {
-                folder_img = eccube.fileManager.IMG_FOLDER_CLOSE;
+              folder_img = 'collapse';
+                //folder_img = eccube.fileManager.IMG_FOLDER_CLOSE;
             }
 
             // 階層画像に子供がいたらオンクリック処理をつける
-            if(rank_img !== eccube.fileManager.IMG_NORMAL) {
-                eccube.fileManager.tree += '<a href="javascript:eccube.fileManager.toggleTreeMenu(\'tree'+ i +'\',\'rank_img'+ i +'\',\''+ arrTree[i][2] +'\')"><span id="rank_img'+ i +'">' + rank_img + '</span>';
-            } else {
-                eccube.fileManager.tree += '<span id="rank_img'+ i +'">' + rank_img + '</span>';
+            // if(sort_no_img !== eccube.fileManager.IMG_NORMAL) {
+            //     eccube.fileManager.tree += '<a href="javascript:eccube.fileManager.toggleTreeMenu(\'tree'+ i +'\',\'sort_no_img'+ i +'\',\''+ arrTree[i][2] +'\')"><span id="sort_no_img'+ i +'">' + sort_no_img + '</span>';
+            // } else {
+            //     eccube.fileManager.tree += '<span id="sort_no_img'+ i +'">' + sort_no_img + '</span>';
 
-            }
-            eccube.fileManager.tree += '<a href="javascript:eccube.fileManager.openFolder(\''+ arrTree[i][2] +'\')"><span id="tree_img'+ i +'">' + folder_img + '&nbsp;'+ file_name +'</span></a><br/>';
-            eccube.fileManager.tree += '<div id="tree'+ i +'" style="display:'+ display +'">';
+            // }
+            eccube.fileManager.tree += '<li><label class="collapsed" data-toggle="collapse" href="#directory_userdata" aria-expanded="false" aria-controls="directory_userdata"><a href="javascript:eccube.fileManager.openFolder(\''+ arrTree[i][2] +'\')">' + file_name +'</a></label></li>';
+            // eccube.fileManager.tree += '<label id="tree'+ i +'" class="' + folder_img + '">';
 
         }
         document.getElementById(view_id).innerHTML = eccube.fileManager.tree;
+
+         */
+    };
+
+    // build directory node
+    eccube.fileManager.buildDirectoryNode = function(name, path, children, currentPath) {
+        var ul = $('<ul></ul>'),
+            li = $('<li></li>'),
+            label = $('<label></label>'),
+            a = $('<a href="#"></a>');
+        currentPath = currentPath || '';
+
+        a.html(name);
+        a.on('click', function (e) {
+            eccube.fileManager.openFolder(path);
+            return e.preventDefault();
+        });
+        a.appendTo(label);
+
+        label.attr('data-toggle', 'collapse');
+        label.attr('href', '#' + path.replace('/', '_'));
+        label.attr('aria-expanded', false);
+        label.attr('aria-control', '');
+        label.appendTo(li);
+
+        if (currentPath.indexOf(path) !== 0) {
+            label.addClass('collapsed')
+        }
+
+        if (children.length) {
+            if (currentPath.indexOf(path) !== 0) {
+                ul.addClass('collapse');
+            } else {
+                ul.addClass('collapsed');
+            }
+
+            ul.attr('id', path.replace('/', '_'));
+            $.each(children, function (k, v) {
+                var li = eccube.fileManager.buildDirectoryNode(v['name'], v['path'], v['children'], currentPath);
+                li.appendTo(ul);
+            });
+            ul.appendTo(li);
+        }
+
+        return li;
     };
 
     // Tree状態をhiddenにセット
@@ -332,7 +413,7 @@
                             }
                         }
                         if(!open_flag) {
-                            eccube.fileManager.toggleTreeMenu('tree'+cnt, 'rank_img'+cnt, arrTree[cnt][2]);
+                            eccube.fileManager.toggleTreeMenu('tree'+cnt, 'sort_no_img'+cnt, arrTree[cnt][2]);
                         }
                     }
                 }
@@ -505,6 +586,50 @@
         eccube.fileManager.deleteTreeStatus(path);
     };
 
+  // TODO 仮実装
+  eccube.fileManager.convertToHierarchy = function (paths /* array of array of strings */) {
+    // Build the node structure
+    var rootNode = {name:"root", children:[]};
+    var $rootNode = $('<div />');
+
+
+    for (var i = 0; i < paths.length; i++) {
+      eccube.fileManager.buildNodeRecursive(
+        rootNode,
+        $rootNode,
+        paths[i].replace(/^\//, 'user_data/')
+          .replace(/\/$/, '')
+          .split('/'),
+        0
+      );
+    };
+    console.log(rootNode);
+    return $rootNode;
+  };
+
+  // TODO 仮実装
+  eccube.fileManager.buildNodeRecursive = function (node, $node, path, idx)
+  {
+    if (idx < path.length) {
+      let $item = $('<li>' + path[idx] + '</li>');
+      let item = path[idx];
+      let $dir = $node.find('ul');
+      let dir = node.children.find(function(child) {
+        return child.name == item;
+      });
+      if (!dir) {
+        node.children.push(dir = {name: item, children:[]});
+      }
+
+      if (!$dir.length) {
+        $dir = $('<ul />').append($item);
+        console.log($dir);
+        $node.append($dir);
+      }
+
+      eccube.fileManager.buildNodeRecursive(dir, $dir, path, idx + 1);
+    }
+  };
 
     /**
      * Initialize.
@@ -562,7 +687,7 @@
             start_node: '<span>ホーム</span>',
             anchor_node: '<a onclick="eccube.setModeAndSubmit(\'tree\', \'parent_category_id\', ' +
                 '{category_id}); return false" href="javascript:;" />',
-            delimiter_node: '<span>&nbsp;&gt;&nbsp;</span>'
+            delimiter_node: '<span>&nbsp;/;&nbsp;</span>'
         };
 
         return this.each(function() {

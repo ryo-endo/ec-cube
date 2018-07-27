@@ -1,136 +1,102 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Controller\Admin\Setting\System;
 
-use Eccube\Application;
-use Eccube\Common\Constant;
 use Eccube\Controller\AbstractController;
-use Eccube\Util\Str;
+use Eccube\Form\Type\Admin\SecurityType;
+use Eccube\Util\CacheUtil;
+use Eccube\Util\StringUtil;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Yaml\Yaml;
-
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 class SecurityController extends AbstractController
 {
-    public function index(Application $app, Request $request)
+    /**
+     * @var TokenStorageInterface
+     */
+    protected $tokenStorage;
+
+    /**
+     * SecurityController constructor.
+     *
+     * @param TokenStorageInterface $tokenStorage
+     */
+    public function __construct(TokenStorageInterface $tokenStorage)
     {
+        $this->tokenStorage = $tokenStorage;
+    }
 
-        $builder = $app['form.factory']->createBuilder('admin_security');
+    /**
+     * @Route("/%eccube_admin_route%/setting/system/security", name="admin_setting_system_security")
+     * @Template("@admin/Setting/System/security.twig")
+     */
+    public function index(Request $request, CacheUtil $cacheUtil)
+    {
+        $builder = $this->formFactory->createBuilder(SecurityType::class);
         $form = $builder->getForm();
+        $form->handleRequest($request);
 
-        if ('POST' === $request->getMethod()) {
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            $envFile = $this->getParameter('kernel.project_dir').'/.env';
+            $env = file_get_contents($envFile);
 
-            $form->handleRequest($request);
+            $adminAllowHosts = \json_encode(
+                array_filter(\explode("\n", StringUtil::convertLineFeed($data['admin_allow_hosts'])), function ($str) {
+                    return StringUtil::isNotBlank($str);
+                })
+            );
+            $env = StringUtil::replaceOrAddEnv($env, [
+                'ECCUBE_ADMIN_ALLOW_HOSTS' => "'{$adminAllowHosts}'",
+                'ECCUBE_FORCE_SSL' => $data['force_ssl'] ? 'true' : 'false',
+            ]);
 
-            if ($form->isValid()) {
-                $data = $form->getData();
+            file_put_contents($envFile, $env);
 
-                // 現在のセキュリティ情報を更新
-                $adminRoot = $app['config']['admin_route'];
+            // 管理画面URLの更新. 変更されている場合はログアウトし再ログインさせる.
+            $adminRoute = $this->eccubeConfig['eccube_admin_route'];
+            if ($adminRoute !== $data['admin_route_dir']) {
+                $env = StringUtil::replaceOrAddEnv($env, [
+                    'ECCUBE_ADMIN_ROUTE' => $data['admin_route_dir'],
+                ]);
 
-                $configFile = $app['config']['root_dir'].'/app/config/eccube/config';
-                if (file_exists($configFile.'.php')) {
-                    $config = require $configFile.'.php';
-                } elseif (file_exists($configFile.'.yml')) {
-                    $config = Yaml::parse(file_get_contents($configFile.'.yml'));
-                }
+                file_put_contents($envFile, $env);
 
-                // trim処理
-                $allowHost = Str::convertLineFeed($data['admin_allow_host']);
-                if (empty($allowHost)) {
-                    $config['admin_allow_host'] = null;
-                } else {
-                    $config['admin_allow_host'] = explode("\n", $allowHost);
-                }
+                $this->addSuccess('admin.system.security.route.dir.complete', 'admin');
 
-                if ($data['force_ssl']) {
-                    // SSL制限にチェックをいれた場合、https経由で接続されたか確認
-                    if ($request->isSecure()) {
-                        // httpsでアクセスされたらSSL制限をチェック
-                        $config['force_ssl'] = Constant::ENABLED;
-                    } else {
-                        // httpから変更されたらfalseのまま
-                        $config['force_ssl'] = Constant::DISABLED;
-                        $data['force_ssl'] = (bool) Constant::DISABLED;
-                    }
-                } else {
-                    $config['force_ssl'] = Constant::DISABLED;
-                }
-                $form = $builder->getForm();
-                $form->setData($data);
+                // ログアウト
+                $this->tokenStorage->setToken(null);
 
-                if (file_exists($configFile.'.php')) {
-                    file_put_contents($configFile.'.php', sprintf('<?php return %s', var_export($config, true)).';');
-                }
-                if (file_exists($configFile.'.yml')) {
-                    file_put_contents($configFile.'.yml', Yaml::dump($config));
-                }
+                // キャッシュの削除
+                $cacheUtil->clearCache();
 
-                if ($adminRoot != $data['admin_route_dir']) {
-                    // admin_routeが変更されればpath.(yml|php)を更新
-                    $pathFile = $app['config']['root_dir'].'/app/config/eccube/path';
-
-                    if (file_exists($pathFile.'.php')) {
-                        $config = require $pathFile.'.php';
-                    } elseif (file_exists($pathFile.'.yml')) {
-                        $config = Yaml::parse(file_get_contents($pathFile.'.yml'));
-                    }
-
-                    $config['admin_route'] = $data['admin_route_dir'];
-
-                    if (file_exists($pathFile.'.php')) {
-                        file_put_contents($pathFile.'.php', sprintf('<?php return %s', var_export($config, true)).';');
-                    }
-                    if (file_exists($pathFile.'.yml')) {
-                        file_put_contents($pathFile.'.yml', Yaml::dump($config));
-                    }
-
-                    $app->addSuccess('admin.system.security.route.dir.complete', 'admin');
-
-                    // ログアウト
-                    $this->getSecurity($app)->setToken(null);
-
-                    // 管理者画面へ再ログイン
-                    return $app->redirect($request->getBaseUrl().'/'.$config['admin_route']);
-                }
-
-                $app->addSuccess('admin.system.security.save.complete', 'admin');
-
+                // 管理者画面へ再ログイン
+                return $this->redirect($request->getBaseUrl().'/'.$data['admin_route_dir']);
             }
-        } else {
-            // セキュリティ情報の取得
-            $form->get('admin_route_dir')->setData($app['config']['admin_route']);
-            $allowHost = $app['config']['admin_allow_host'];
-            if (count($allowHost) > 0) {
-                $form->get('admin_allow_host')->setData(Str::convertLineFeed(implode("\n", $allowHost)));
-            }
-            $form->get('force_ssl')->setData((bool)$app['config']['force_ssl']);
+
+            $this->addSuccess('admin.system.security.save.complete', 'admin');
+
+            // キャッシュの削除
+            $cacheUtil->clearCache();
+
+            return $this->redirectToRoute('admin_setting_system_security');
         }
 
-        return $app->render('Setting/System/security.twig', array(
+        return [
             'form' => $form->createView(),
-        ));
+        ];
     }
 }

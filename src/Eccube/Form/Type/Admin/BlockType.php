@@ -1,43 +1,55 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Form\Type\Admin;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Eccube\Common\EccubeConfig;
+use Eccube\Entity\Block;
+use Eccube\Form\Validator\TwigLint;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvents;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class BlockType extends AbstractType
 {
-    public $app;
+    /**
+     * @var EntityManagerInterface
+     */
+    protected $entityManager;
 
-    public function __construct(\Silex\Application $app)
+    /**
+     * @var EccubeConfig
+     */
+    protected $eccubeConfig;
+
+    /**
+     * BlockType constructor.
+     *
+     * @param $entityManager
+     * @param EccubeConfig $eccubeConfig
+     */
+    public function __construct(EntityManagerInterface $entityManager, EccubeConfig $eccubeConfig)
     {
-        $this->app = $app;
+        $this->entityManager = $entityManager;
+        $this->eccubeConfig = $eccubeConfig;
     }
 
     /**
@@ -45,50 +57,51 @@ class BlockType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $app = $this->app;
-
         $builder
-            ->add('name', 'text', array(
-                'label' => 'ブロック名',
+            ->add('name', TextType::class, [
+                'label' => 'admin.content.block.form.label.block_name', // TODO form_label を使用しないのなら削除
                 'required' => true,
-                'constraints' => array(
+                'constraints' => [
                     new Assert\NotBlank(),
-                    new Assert\Length(array(
-                        'max' => $app['config']['stext_len'],
-                    ))
-                )
-            ))
-            ->add('file_name', 'text', array(
-                'label' => 'ファイル名',
+                    new Assert\Length([
+                        'max' => $this->eccubeConfig['eccube_stext_len'],
+                    ]),
+                ],
+            ])
+            ->add('file_name', TextType::class, [
+                'label' => 'common.label.file_name', // TODO form_label を使用しないのなら削除
                 'required' => true,
-                'constraints' => array(
+                'constraints' => [
                     new Assert\NotBlank(),
-                    new Assert\Length(array(
-                        'max' => $app['config']['stext_len'],
-                    )),
-                    new Assert\Regex(array(
+                    new Assert\Length([
+                        'max' => $this->eccubeConfig['eccube_stext_len'],
+                    ]),
+                    new Assert\Regex([
                         'pattern' => '/^[0-9a-zA-Z\/_]+$/',
-                    )),
-                )
-            ))
-            ->add('block_html', 'textarea', array(
-                'label' => 'ブロックデータ',
+                    ]),
+                ],
+            ])
+            ->add('block_html', TextareaType::class, [
+                'label' => 'block.label.block_type', // TODO form_label を使用しないのなら削除
                 'mapped' => false,
                 'required' => false,
-                'constraints' => array()
-            ))
-            ->add('DeviceType', 'entity', array(
+                'constraints' => [
+                    new Assert\NotBlank(),
+                    new TwigLint(),
+                ],
+            ])
+            ->add('DeviceType', EntityType::class, [
                 'class' => 'Eccube\Entity\Master\DeviceType',
-                'property' => 'id',
-            ))
-            ->add('id', 'hidden')
-            ->addEventListener(FormEvents::POST_SUBMIT, function($event) use ($app) {
+                'choice_label' => 'id',
+            ])
+            ->add('id', HiddenType::class)
+            ->addEventListener(FormEvents::POST_SUBMIT, function ($event) {
                 $form = $event->getForm();
                 $file_name = $form['file_name']->getData();
                 $DeviceType = $form['DeviceType']->getData();
                 $block_id = $form['id']->getData();
 
-                $qb = $app['orm.em']->createQueryBuilder();
+                $qb = $this->entityManager->createQueryBuilder();
                 $qb->select('b')
                     ->from('Eccube\\Entity\\Block', 'b')
                     ->where('b.file_name = :file_name')
@@ -113,17 +126,17 @@ class BlockType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults(array(
-            'data_class' => 'Eccube\Entity\Block',
-        ));
+        $resolver->setDefaults([
+            'data_class' => Block::class,
+        ]);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'block';
     }

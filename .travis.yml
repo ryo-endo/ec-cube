@@ -3,77 +3,101 @@
 git:
   submodules: false
 
+sudo: required
+
 language: php
+
+addons:
+  apt:
+    sources:
+      - google-chrome
+    packages:
+      - google-chrome-stable
 
 cache:
   directories:
     - vendor
     - $HOME/.composer/cache
+    - bin/.phpunit
+
 php:
-  - 5.3
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7.0
-  - 7.1
+  - 7.2
 
-dist: precise
-
-matrix:
-  fast_finish: true
-  include:
-    - php: 7.0.12 # for coverrage
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-      sudo: required
-      dist: trusty
-  exclude:
-    - php: 5.3
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-    - php: 5.4
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-    - php: 5.5
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-    - php: 5.6
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-    - php: 7.0
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-    - php: 7.1
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-  allow_failures:
-    - env: DB=sqlite
-    - php: 7.1
-    - php: 7.0.12 # dist: trusty を動かすためのダミー. 実際にテストは実行されない
-      env: DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-
-env:
-  - DB=mysql USER=root DBNAME=myapp_test DBPASS=' ' DBUSER=root
-  - DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres
-  - DB=pgsql USER=postgres DBNAME=myapp_test DBPASS=password DBUSER=postgres PHP_SAPI=phpdbg
-  - DB=sqlite
+## see https://github.com/symfony/symfony/blob/e0bdc0c35e9afdb3bee8af172f90e9648c4012fc/.travis.yml#L92-L97
+before_install: &php_setup |
+  phpenv config-rm xdebug.ini || true
+  echo "opcache.enable_cli=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+  echo "apc.enable_cli=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+  echo "memory_limit=-1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
 
 install:
-  - gem install mime-types -v 2.99.1
-  - gem install mailcatcher
+  - &composer_install composer install --dev --no-interaction -o --apcu-autoloader
 
-before_script:
-  - CODENAME=$(lsb_release -c -s)
-  - if [[ $PHP_SAPI != 'phpdbg' ]] || [[ $CODENAME = 'trusty' ]]; then phpenv config-rm xdebug.ini ; fi
-  - if [[ $PHP_SAPI = 'phpdbg' ]]; then echo "memory_limit=-1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini ; fi
-  - composer self-update || true
-  - composer install --dev --no-interaction -o
-  - php ./eccube_install.php $DB none
-  - mailcatcher
+eccube_setup: &eccube_setup |
+  echo "APP_ENV=codeception" > .env
+  bin/console doctrine:database:create
+  bin/console doctrine:schema:create
+  bin/console eccube:fixtures:load
 
-script: # PHP7 + precise のテストは実行されない
-  - if [[ $PHP_SAPI = 'phpdbg' ]] && [[ $CODENAME = 'trusty' ]]; then phpdbg -qrr ./vendor/bin/phpunit --coverage-clover=coverage.clover ; fi
-  - if [[ $PHP_SAPI != 'phpdbg' ]]; then ./vendor/bin/phpunit ; fi
-
-after_script:
-  - if [[ $PHP_SAPI = 'phpdbg' ]]; then wget https://scrutinizer-ci.com/ocular.phar ; fi
-  - if [[ $PHP_SAPI = 'phpdbg' ]]; then php ocular.phar code-coverage:upload --format=php-clover coverage.clover ; fi
-
-after_success:
-  - if [[ $PHP_SAPI = 'phpdbg' ]]; then php vendor/bin/coveralls -v -x coverage.clover ; fi
-
-  # after_failure:
-#   - 'cat app/log/site_`date +"%Y-%m-%d"`.log'
+jobs:
+  fast_finish: true
+  allow_failures:
+    - env: DATABASE_URL=sqlite:///%kernel.project_dir%/var/eccube.db DATABASE_SERVER_VERSION=3 COVERAGE=1
+  include:
+    - stage: Inspection
+      php: 7.1
+      env: DATABASE_URL=postgres://postgres:password@localhost/cube4_dev DATABASE_SERVER_VERSION=9
+      script: vendor/bin/php-cs-fixer fix --config=.php_cs.dist --dry-run
+    - &unit_test
+      stage: Unit Test
+      before_install:
+        - *php_setup
+        - gem install mailcatcher
+      install:
+        - *composer_install
+        - *eccube_setup
+      env: DATABASE_URL=mysql://root:@localhost/cube4_dev DATABASE_SERVER_VERSION=5
+      script:
+        - ./bin/phpunit --exclude-group cache-clear
+        - ./bin/phpunit --group cache-clear
+    - <<: *unit_test
+      env: DATABASE_URL=postgres://postgres:password@localhost/cube4_dev DATABASE_SERVER_VERSION=9
+    - &e2e_test
+      stage: E2E Test
+      before_install:
+        - *php_setup
+        - export DISPLAY=:99.0
+        - sh -e /etc/init.d/xvfb start
+        - wget -c -nc --retry-connrefused --tries=0 http://chromedriver.storage.googleapis.com/2.37/chromedriver_linux64.zip
+        - unzip -o -q chromedriver_linux64.zip
+        - sudo mv -f ./chromedriver /usr/local/bin/
+        - sudo chmod +x /usr/local/bin/chromedriver
+        - gem install mailcatcher
+      install:
+        - *composer_install
+        - *eccube_setup
+      env: GROUP=admin01 APP_ENV=codeception DATABASE_URL=postgres://postgres:password@localhost/eccube_db DATABASE_SERVER_VERSION=9 MAILER_URL=smtp://localhost:1025
+      script: ./codeception.sh -g ${GROUP}
+    - <<: *e2e_test
+      env: GROUP=admin02 APP_ENV=codeception DATABASE_URL=postgres://postgres:password@localhost/eccube_db DATABASE_SERVER_VERSION=9 MAILER_URL=smtp://localhost:1025
+    - <<: *e2e_test
+      env: GROUP=admin03 APP_ENV=codeception DATABASE_URL=postgres://postgres:password@localhost/eccube_db DATABASE_SERVER_VERSION=9 MAILER_URL=smtp://localhost:1025
+    - <<: *e2e_test
+      env: GROUP=front APP_ENV=codeception DATABASE_URL=postgres://postgres:password@localhost/eccube_db DATABASE_SERVER_VERSION=9 MAILER_URL=smtp://localhost:1025
+    - &coverage
+      stage: Code Coverage
+      env: DATABASE_URL=sqlite:///%kernel.project_dir%/var/eccube.db DATABASE_SERVER_VERSION=3 COVERAGE=1
+      before_install:
+        - *php_setup
+        - gem install mailcatcher
+      install:
+        - *composer_install
+        - *eccube_setup
+      script:
+        - docker run -e DATABASE_URL=sqlite:////usr/src/myapp/var/eccube.db -v "$PWD":/usr/src/myapp:cached -w /usr/src/myapp --rm nanasess/phpdbg phpdbg -qrr -dmemory_limit=-1 ./bin/phpunit --exclude-group cache-clear --coverage-clover=coverage.clover
+      after_success:
+        - sed -i.bak -e 's|/usr/src/myapp/||g' coverage.clover
+        - php vendor/bin/php-coveralls -v -x coverage.clover
+      after_script:
+        - wget https://scrutinizer-ci.com/ocular.phar
+        - php ocular.phar code-coverage:upload --format=php-clover coverage.clover

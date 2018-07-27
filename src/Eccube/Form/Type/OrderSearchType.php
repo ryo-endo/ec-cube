@@ -1,31 +1,27 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Form\Type;
 
+use Eccube\Form\Type\Master\OrderStatusType;
+use Eccube\Form\Type\Master\PaymentType;
+use Eccube\Form\Type\Master\SexType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type;
+use Symfony\Component\Form\Extension\Core\Type\BirthdayType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -34,10 +30,10 @@ class OrderSearchType extends AbstractType
 {
     public $app;
 
-    public function __construct(\Silex\Application $app)
-    {
-        $this->app = $app;
-    }
+    // public function __construct(\Silex\Application $app)
+    // {
+    //     $this->app = $app;
+    // }
 
     /**
      * {@inheritdoc}
@@ -47,118 +43,120 @@ class OrderSearchType extends AbstractType
         $app = $this->app;
 
         $builder
-            ->add('order_id_start', 'integer', array(
-                'label' => '注文番号',
+            ->add('order_id_start', IntegerType::class, [
+                'label' => 'ordersearch.label.order_id',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Type(array(
+                'constraints' => [
+                    new Assert\Type([
                         'type' => 'integer',
-                    )),
-                ),
-            ))
-            ->add('order_id_end', 'integer', array(
-                'label' => '注文番号',
+                    ]),
+                    new Assert\Length(['max' => 10]),
+                ],
+            ])
+            ->add('order_id_end', IntegerType::class, [
+                'label' => 'ordersearch.label.order_id',
                 'required' => false,
-                'constraints' => array(
-                    new Assert\Type(array(
+                'constraints' => [
+                    new Assert\Type([
                         'type' => 'integer',
-                    )),
-                ),
-            ))
-            ->add('status', 'order_status', array(
-                'label' => '対応状況',
-            ))
-            ->add('name', 'text', array(
+                    ]),
+                    new Assert\Length(['max' => 10]),
+                ],
+            ])
+            ->add('status', OrderStatusType::class, [
+                'label' => 'ordersearch.label.status',
+            ])
+            ->add('name', TextType::class, [
                 'required' => false,
-            ))
-            ->add('kana', 'text', array(
+            ])
+            ->add('kana', TextType::class, [
                 'required' => false,
-            ))
-            ->add('email', 'email', array(
+            ])
+            ->add('email', EmailType::class, [
                 'required' => false,
-            ))
-            ->add('tel', 'tel', array(
+            ])
+            ->add('phone_number', PhoneNumberType::class, [
                 'required' => false,
-            ))
-            ->add('birth_start', 'birthday', array(
-                'label' => '誕生日',
+            ])
+            ->add('birth_start', BirthdayType::class, [
+                'label' => 'ordersearch.label.dob',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'choice',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('birth_end', 'birthday', array(
-                'label' => '誕生日',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('birth_end', BirthdayType::class, [
+                'label' => 'ordersearch.label.dob',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'choice',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('sex', 'sex', array(
-                'label' => '性別',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('sex', SexType::class, [
+                'label' => 'ordersearch.label.gender',
                 'required' => false,
                 'expanded' => true,
                 'multiple' => true,
-            ))
-            ->add('payment', 'payment', array(
-                'label' => '支払方法',
+            ])
+            ->add('payment', PaymentType::class, [
+                'label' => 'ordersearch.label.payment',
                 'required' => false,
                 'expanded' => true,
                 'multiple' => true,
-            ))
-            ->add('order_date_start', 'date', array(
-                'label' => '注文日',
+            ])
+            ->add('order_date_start', DateType::class, [
+                'label' => 'ordersearch.label.order_date',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'choice',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('order_date_end', 'date', array(
-                'label' => '注文日',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('order_date_end', DateType::class, [
+                'label' => 'ordersearch.label.order_date',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'choice',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('update_date_start', 'date', array(
-                'label' => '更新日',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('update_date_start', DateType::class, [
+                'label' => 'ordersearch.label.last_update',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'choice',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('update_date_end', 'date', array(
-                'label' => '更新日',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('update_date_end', DateType::class, [
+                'label' => 'ordersearch.label.last_update',
                 'required' => false,
                 'input' => 'datetime',
                 'widget' => 'choice',
                 'format' => 'yyyy-MM-dd',
-                'empty_value' => array('year' => '----', 'month' => '--', 'day' => '--'),
-            ))
-            ->add('payment_total_start', 'integer', array(
-                'label' => '購入金額',
+                'placeholder' => ['year' => '----', 'month' => '--', 'day' => '--'],
+            ])
+            ->add('payment_total_start', IntegerType::class, [
+                'label' => 'ordersearch.label.purchased_amount',
                 'required' => false,
-            ))
-            ->add('payment_total_end', 'integer', array(
-                'label' => '購入金額',
+            ])
+            ->add('payment_total_end', IntegerType::class, [
+                'label' => 'ordersearch.label.purchased_amount',
                 'required' => false,
-            ))
-            ->add('buy_product_name', 'text', array(
-                'label' => '購入商品名',
+            ])
+            ->add('buy_product_name', TextType::class, [
+                'label' => 'ordersearch.label.purchased_products',
                 'required' => false,
-            ))
+            ])
         ;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'order_search';
     }

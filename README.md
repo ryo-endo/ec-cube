@@ -21,11 +21,23 @@
 
 ### [EC-CUBE 3.xのインストール方法](http://ec-cube.github.io/quickstart_install)
 
+### CSS の編集方法
+
+[Sass](http://sass-lang.com) を使用して記述されています。
+Sass のソースコードは `html/template/{admin,default}/assets/scss` にあります。
+前提として [https://nodejs.org/ja/] より、 Node.js をインストールしておいてください。
+
+以下のコマンドでビルドすることで、 `html/template/{admin,default}/assets/css` に CSS ファイルが出力されます。
+
+```shell
+npm install # 初回のみ
+npm run build # Sass のビルド
+```
 
 ### 動作確認環境
 
-* Apache/2.2.15 (Unix)
-* PHP5.4.14
+* Apache/2.4.x (mod_rewrite / mod_ssl 必須)
+* PHP7.0.8
 * PostgreSQL 9.2.1   
 * ブラウザー：Google Chrome  
 

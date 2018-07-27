@@ -2,14 +2,16 @@
 !.gitmodule
 composer.phar
 /vendor/
+/node_modules/
+/var/*
+!/var/.gitkeep
 /app/cache/*
 !/app/cache/.gitkeep
-/app/config/eccube/*
-!/app/config/eccube/.gitkeep
 /app/log/*
 !/app/log/.gitkeep
 /app/Plugin/*
 !/app/Plugin/.gitkeep
+!/app/Plugin/ExamplePlugin
 /app/template/*
 !/app/template/admin
 !/app/template/default
@@ -27,9 +29,23 @@ composer.phar
 !/html/template/install
 /html/user_data/*
 !/html/user_data/.gitkeep
-/phpunit.xml
 /src/Eccube/Resource/config/*.dist.php
 /tests/tmp/*
 /reports/*
 .idea
 *.php~
+.env
+
+###> symfony/phpunit-bridge ###
+.phpunit
+/phpunit.xml
+###< symfony/phpunit-bridge ###
+
+###> friendsofphp/php-cs-fixer ###
+.php_cs
+.php_cs.cache
+###< friendsofphp/php-cs-fixer ###
+
+###> symfony/web-server-bundle ###
+.web-server-pid
+###< symfony/web-server-bundle ###

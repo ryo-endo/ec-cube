@@ -1,26 +1,15 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
@@ -28,99 +17,99 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Plugin
+ *
+ * @ORM\Table(name="dtb_plugin")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\PluginRepository")
  */
-class Plugin extends AbstractEntity
+class Plugin extends \Eccube\Entity\AbstractEntity
 {
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="name", type="string", length=255)
      */
     private $name;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="code", type="string", length=255)
      */
     private $code;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="class_name", type="string", length=255)
      */
     private $class_name;
 
     /**
-     * @var integer
+     * @var boolean
+     *
+     * @ORM\Column(name="enabled", type="boolean", options={"default":false})
      */
-    private $enable;
+    private $enabled = false;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="version", type="string", length=255)
      */
     private $version;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(name="source", type="string", length=255)
+     */
+    private $source;
+
+    /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
-     * @var integer
+     * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
-    private $del_flg;
-
-    /**
-     * @var integer
-     */
-    private $source;
-
-
     private $update_date;
-
-    // local property
-    /**
-     * @var string
-     */
-    private $update_status;
-
-    /**
-     * @var string
-     */
-    private $new_version;
-
-    /**
-     * @var string
-     */
-    private $last_update_date;
-
-    /**
-     * @var string
-     */
-    private $product_url;
-
-    /**
-     * @var array
-     */
-    private $eccube_version;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\PluginEventHandler", mappedBy="Plugin", cascade={"persist","remove"})
      */
     private $PluginEventHandlers;
 
-
+    /**
+     * Constructor
+     */
     public function __construct()
     {
         $this->PluginEventHandlers = new \Doctrine\Common\Collections\ArrayCollection();
-
     }
 
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -128,9 +117,10 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Set name
+     * Set name.
      *
      * @param string $name
+     *
      * @return Plugin
      */
     public function setName($name)
@@ -141,7 +131,7 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Get name
+     * Get name.
      *
      * @return string
      */
@@ -151,9 +141,10 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Set code
+     * Set code.
      *
      * @param string $code
+     *
      * @return Plugin
      */
     public function setCode($code)
@@ -164,7 +155,7 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Get code
+     * Get code.
      *
      * @return string
      */
@@ -174,9 +165,10 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Set class_name
+     * Set className.
      *
      * @param string $className
+     *
      * @return Plugin
      */
     public function setClassName($className)
@@ -187,7 +179,7 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Get class_name
+     * Get className.
      *
      * @return string
      */
@@ -197,32 +189,34 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Set enable
+     * Set enabled.
      *
-     * @param integer $enable
+     * @param boolean $enabled
+     *
      * @return Plugin
      */
-    public function setEnable($enable)
+    public function setEnabled($enabled)
     {
-        $this->enable = $enable;
+        $this->enabled = $enabled;
 
         return $this;
     }
 
     /**
-     * Get enable
+     * Get enabled.
      *
-     * @return integer
+     * @return boolean
      */
-    public function getEnable()
+    public function isEnabled()
     {
-        return $this->enable;
+        return $this->enabled;
     }
 
     /**
-     * Set version
+     * Set version.
      *
      * @param string $version
+     *
      * @return Plugin
      */
     public function setVersion($version)
@@ -233,7 +227,7 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Get version
+     * Get version.
      *
      * @return string
      */
@@ -243,78 +237,10 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Set create_date
+     * Set source.
      *
-     * @param \DateTime $createDate
-     * @return Plugin
-     */
-    public function setCreateDate($createDate)
-    {
-        $this->create_date = $createDate;
-
-        return $this;
-    }
-
-    /**
-     * Get create_date
+     * @param string $source
      *
-     * @return \DateTime
-     */
-    public function getCreateDate()
-    {
-        return $this->create_date;
-    }
-
-    /**
-     * Set update_date
-     *
-     * @param \DateTime $updateDate
-     * @return Plugin
-     */
-    public function setUpdateDate($updateDate)
-    {
-        $this->update_date = $updateDate;
-
-        return $this;
-    }
-
-    /**
-     * Get update_date
-     *
-     * @return \DateTime
-     */
-    public function getUpdateDate()
-    {
-        return $this->update_date;
-    }
-
-    /**
-     * Set del_flg
-     *
-     * @param integer $delFlg
-     * @return Plugin
-     */
-    public function setDelFlg($delFlg)
-    {
-        $this->del_flg = $delFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get del_flg
-     *
-     * @return integer
-     */
-    public function getDelFlg()
-    {
-        return $this->del_flg;
-    }
-
-    /**
-     * Set source
-     *
-     * @param integer $source
      * @return Plugin
      */
     public function setSource($source)
@@ -325,9 +251,9 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Get source
+     * Get source.
      *
-     * @return integer
+     * @return string
      */
     public function getSource()
     {
@@ -335,137 +261,86 @@ class Plugin extends AbstractEntity
     }
 
     /**
-     * Set update_status
+     * Set createDate.
      *
-     * @param string $updateStatus
+     * @param \DateTime $createDate
+     *
      * @return Plugin
      */
-    public function setUpdateStatus($updateStatus)
+    public function setCreateDate($createDate)
     {
-        $this->update_status = $updateStatus;
+        $this->create_date = $createDate;
 
         return $this;
     }
 
     /**
-     * Get update_status
+     * Get createDate.
      *
-     * @return string
+     * @return \DateTime
      */
-    public function getUpdateStatus()
+    public function getCreateDate()
     {
-        return $this->update_status;
+        return $this->create_date;
     }
 
     /**
-     * Set new_version
+     * Set updateDate.
      *
-     * @param string $newVersion
+     * @param \DateTime $updateDate
+     *
      * @return Plugin
      */
-    public function setNewVersion($newVersion)
+    public function setUpdateDate($updateDate)
     {
-        $this->new_version = $newVersion;
+        $this->update_date = $updateDate;
 
         return $this;
     }
 
     /**
-     * Get new_version
+     * Get updateDate.
      *
-     * @return string
+     * @return \DateTime
      */
-    public function getNewVersion()
+    public function getUpdateDate()
     {
-        return $this->new_version;
+        return $this->update_date;
     }
 
     /**
-     * Set last_update_date
+     * Add pluginEventHandler.
      *
-     * @param string $lastUpdateDate
+     * @param \Eccube\Entity\PluginEventHandler $pluginEventHandler
+     *
      * @return Plugin
      */
-    public function setLastUpdateDate($lastUpdateDate)
+    public function addPluginEventHandler(\Eccube\Entity\PluginEventHandler $pluginEventHandler)
     {
-        $this->last_update_date = $lastUpdateDate;
+        $this->PluginEventHandlers[] = $pluginEventHandler;
 
         return $this;
     }
 
     /**
-     * Get last_update_date
+     * Remove pluginEventHandler.
      *
-     * @return string
+     * @param \Eccube\Entity\PluginEventHandler $pluginEventHandler
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function getLastUpdateDate()
+    public function removePluginEventHandler(\Eccube\Entity\PluginEventHandler $pluginEventHandler)
     {
-        return $this->last_update_date;
+        return $this->PluginEventHandlers->removeElement($pluginEventHandler);
     }
 
     /**
-     * Set product_url
+     * Get pluginEventHandlers.
      *
-     * @param string $productUrl
-     * @return Plugin
+     * @return \Doctrine\Common\Collections\Collection
      */
-    public function setProductUrl($productUrl)
-    {
-        $this->product_url = $productUrl;
-
-        return $this;
-    }
-
-    /**
-     * Get product_url
-     *
-     * @return string
-     */
-    public function getProductUrl()
-    {
-        return $this->product_url;
-    }
-
-    /**
-     * Set eccube_version
-     *
-     * @param array $eccube_version
-     * @return Plugin
-     */
-    public function setEccubeVersion($eccube_version)
-    {
-        $this->eccube_version = $eccube_version;
-
-        return $this;
-    }
-
-    /**
-     * Get eccube_version
-     *
-     * @return array
-     */
-    public function getEccubeVersion()
-    {
-        return $this->eccube_version;
-    }
-
-    public function getEccubeVersionAsString()
-    {
-        return implode(', ', $this->getEccubeVersion());
-    }
-
     public function getPluginEventHandlers()
     {
         return $this->PluginEventHandlers;
-    }
-    public function addPluginEventHandler(\Eccube\Entity\PluginEventHandler $PluginEventHandler)
-    {
-        $this->PluginEventHandlers[] = $PluginEventHandler;
-        return $this;
-    }
-    public function removePluginEventHandler(\Eccube\Entity\PluginEventHandler $PluginEventHandler)
-    {
-        $this->PluginEventHandlers->removeElement($PluginEventHandler);
-        return $this;
     }
 }

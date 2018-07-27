@@ -1,63 +1,81 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
+use Doctrine\ORM\Mapping as ORM;
+
 /**
  * ProductCategory
+ *
+ * @ORM\Table(name="dtb_product_category")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\ProductCategoryRepository")
  */
 class ProductCategory extends \Eccube\Entity\AbstractEntity
 {
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="product_id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
      */
     private $product_id;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="category_id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="NONE")
      */
     private $category_id;
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="sort_no", type="smallint", options={"unsigned":true})
      */
-    private $rank;
+    private $sort_no;
 
     /**
      * @var \Eccube\Entity\Product
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Product", inversedBy="ProductCategories")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="product_id", referencedColumnName="id")
+     * })
      */
     private $Product;
 
     /**
      * @var \Eccube\Entity\Category
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Category", inversedBy="ProductCategories")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="category_id", referencedColumnName="id")
+     * })
      */
     private $Category;
 
     /**
-     * Set product_id
+     * Set productId.
      *
-     * @param  integer         $productId
+     * @param int $productId
+     *
      * @return ProductCategory
      */
     public function setProductId($productId)
@@ -68,9 +86,9 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get product_id
+     * Get productId.
      *
-     * @return integer
+     * @return int
      */
     public function getProductId()
     {
@@ -78,9 +96,10 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set category_id
+     * Set categoryId.
      *
-     * @param  integer         $categoryId
+     * @param int $categoryId
+     *
      * @return ProductCategory
      */
     public function setCategoryId($categoryId)
@@ -91,9 +110,9 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get category_id
+     * Get categoryId.
      *
-     * @return integer
+     * @return int
      */
     public function getCategoryId()
     {
@@ -101,32 +120,34 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set rank
+     * Set sortNo.
      *
-     * @param  integer         $rank
+     * @param int $sortNo
+     *
      * @return ProductCategory
      */
-    public function setRank($rank)
+    public function setSortNo($sortNo)
     {
-        $this->rank = $rank;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get rank
+     * Get sortNo.
      *
-     * @return integer
+     * @return int
      */
-    public function getRank()
+    public function getSortNo()
     {
-        return $this->rank;
+        return $this->sort_no;
     }
 
     /**
-     * Set Product
+     * Set product.
      *
-     * @param  \Eccube\Entity\Product $product
+     * @param \Eccube\Entity\Product|null $product
+     *
      * @return ProductCategory
      */
     public function setProduct(\Eccube\Entity\Product $product = null)
@@ -137,9 +158,9 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Product
+     * Get product.
      *
-     * @return \Eccube\Entity\Product
+     * @return \Eccube\Entity\Product|null
      */
     public function getProduct()
     {
@@ -147,9 +168,10 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Category
+     * Set category.
      *
-     * @param  \Eccube\Entity\Category $category
+     * @param \Eccube\Entity\Category|null $category
+     *
      * @return ProductCategory
      */
     public function setCategory(\Eccube\Entity\Category $category = null)
@@ -160,9 +182,9 @@ class ProductCategory extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Category
+     * Get category.
      *
-     * @return \Eccube\Entity\Category
+     * @return \Eccube\Entity\Category|null
      */
     public function getCategory()
     {

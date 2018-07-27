@@ -1,26 +1,15 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
-
 
 namespace Eccube\Entity;
 
@@ -28,10 +17,15 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * PluginEventHandler
+ *
+ * @ORM\Table(name="dtb_plugin_event_handler")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\PluginEventHandlerRepository")
  */
 class PluginEventHandler extends AbstractEntity
 {
-
     const EVENT_PRIORITY_LATEST = -500; // ハンドラテーブルに登録されていない場合の優先度
     const EVENT_PRIORITY_DISABLED = 0; // ハンドラを無効にする
 
@@ -49,53 +43,77 @@ class PluginEventHandler extends AbstractEntity
     const EVENT_HANDLER_TYPE_LAST = 'LAST';
 
     /**
-     * @var integer
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var string
+     *
+     * @ORM\Column(name="event", type="string", length=255)
      */
     private $event;
 
     /**
      * @var int
+     *
+     * @ORM\Column(name="priority", type="integer", options={"default":0})
      */
-    private $priority;
+    private $priority = 0;
 
     /**
      * @var int
+     *
+     * @ORM\Column(name="plugin_id", type="integer", options={"unsigned":true})
      */
     private $plugin_id;
 
     /**
-     * @var integer
-     */
-    private $del_flg;
-
-    /**
      * @var string
+     *
+     * @ORM\Column(name="handler", type="string", length=255)
      */
     private $handler;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(name="handler_type", type="string", length=255, nullable=false)
+     */
+    private $handler_type;
+
+    /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
+    /**
+     * @var \Eccube\Entity\Plugin
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Plugin", inversedBy="PluginEventHandlers")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="plugin_id", referencedColumnName="id")
+     * })
+     */
     private $Plugin;
 
-    private $handler_type;
-
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -103,9 +121,10 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Set event
+     * Set event.
      *
      * @param string $event
+     *
      * @return PluginEventHandler
      */
     public function setEvent($event)
@@ -116,7 +135,7 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Get event
+     * Get event.
      *
      * @return string
      */
@@ -126,9 +145,10 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Set priority
+     * Set priority.
      *
-     * @param \int $priority
+     * @param int $priority
+     *
      * @return PluginEventHandler
      */
     public function setPriority($priority)
@@ -139,9 +159,9 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Get priority
+     * Get priority.
      *
-     * @return \int
+     * @return int
      */
     public function getPriority()
     {
@@ -149,9 +169,10 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Set plugin_id
+     * Set pluginId.
      *
-     * @param \int $pluginId
+     * @param int $pluginId
+     *
      * @return PluginEventHandler
      */
     public function setPluginId($pluginId)
@@ -162,9 +183,9 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Get plugin_id
+     * Get pluginId.
      *
-     * @return \int
+     * @return int
      */
     public function getPluginId()
     {
@@ -172,32 +193,10 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Set del_flg
-     *
-     * @param integer $delFlg
-     * @return PluginEventHandler
-     */
-    public function setDelFlg($delFlg)
-    {
-        $this->del_flg = $delFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get del_flg
-     *
-     * @return integer
-     */
-    public function getDelFlg()
-    {
-        return $this->del_flg;
-    }
-
-    /**
-     * Set handler
+     * Set handler.
      *
      * @param string $handler
+     *
      * @return PluginEventHandler
      */
     public function setHandler($handler)
@@ -208,7 +207,7 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Get handler
+     * Get handler.
      *
      * @return string
      */
@@ -218,9 +217,34 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Set create_date
+     * Set handlerType.
+     *
+     * @param string $handlerType
+     *
+     * @return PluginEventHandler
+     */
+    public function setHandlerType($handlerType)
+    {
+        $this->handler_type = $handlerType;
+
+        return $this;
+    }
+
+    /**
+     * Get handlerType.
+     *
+     * @return string
+     */
+    public function getHandlerType()
+    {
+        return $this->handler_type;
+    }
+
+    /**
+     * Set createDate.
      *
      * @param \DateTime $createDate
+     *
      * @return PluginEventHandler
      */
     public function setCreateDate($createDate)
@@ -231,7 +255,7 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -240,22 +264,11 @@ class PluginEventHandler extends AbstractEntity
         return $this->create_date;
     }
 
-    public function setHandlerType($handlerType)
-    {
-        $this->handler_type = $handlerType;
-
-        return $this;
-    }
-
-    public function getHandlerType()
-    {
-        return $this->handler_type;
-    }
-
     /**
-     * Set update_date
+     * Set updateDate.
      *
      * @param \DateTime $updateDate
+     *
      * @return PluginEventHandler
      */
     public function setUpdateDate($updateDate)
@@ -266,7 +279,7 @@ class PluginEventHandler extends AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -275,14 +288,27 @@ class PluginEventHandler extends AbstractEntity
         return $this->update_date;
     }
 
+    /**
+     * Set plugin.
+     *
+     * @param \Eccube\Entity\Plugin|null $plugin
+     *
+     * @return PluginEventHandler
+     */
+    public function setPlugin(\Eccube\Entity\Plugin $plugin = null)
+    {
+        $this->Plugin = $plugin;
+
+        return $this;
+    }
+
+    /**
+     * Get plugin.
+     *
+     * @return \Eccube\Entity\Plugin|null
+     */
     public function getPlugin()
     {
         return $this->Plugin;
     }
-    public function setPlugin(\Eccube\Entity\Plugin $Plugin)
-    {
-        $this->Plugin = $Plugin;
-        return $this;
-    }
-
 }

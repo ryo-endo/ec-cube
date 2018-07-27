@@ -1,144 +1,173 @@
 <?php
+
 /*
  * This file is part of EC-CUBE
  *
- * Copyright(c) 2000-2015 LOCKON CO.,LTD. All Rights Reserved.
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
  *
  * http://www.lockon.co.jp/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-
 namespace Eccube\Entity;
-use Eccube\Util\EntityUtil;
+
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Delivery
+ *
+ * @ORM\Table(name="dtb_delivery")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\DeliveryRepository")
  */
 class Delivery extends \Eccube\Entity\AbstractEntity
 {
     /**
-     * @var integer
+     * @return string
+     */
+    public function __toString()
+    {
+        return (string) $this->name;
+    }
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
-     * @var string
+     * @var string|null
+     *
+     * @ORM\Column(name="name", type="string", length=255, nullable=true)
      */
     private $name;
 
     /**
-     * @var string
+     * @var string|null
+     *
+     * @ORM\Column(name="service_name", type="string", length=255, nullable=true)
      */
     private $service_name;
 
     /**
-     * @var string
+     * @var string|null
+     *
+     * @ORM\Column(name="description", type="string", length=4000, nullable=true)
      */
     private $description;
 
     /**
-     * @var string
+     * @var string|null
+     *
+     * @ORM\Column(name="confirm_url", type="string", length=4000, nullable=true)
      */
     private $confirm_url;
 
     /**
-     * @var integer
+     * @var int|null
+     *
+     * @ORM\Column(name="sort_no", type="integer", nullable=true, options={"unsigned":true})
      */
-    private $rank;
+    private $sort_no;
 
     /**
-     * @var integer
+     * @var boolean
+     *
+     * @ORM\Column(name="visible", type="boolean", options={"unsigned":true,"default":true})
      */
-    private $del_flg;
+    private $visible = true;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="update_date", type="datetimetz")
      */
     private $update_date;
 
     /**
-     * @var \Eccube\Entity\Master\ProductType
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\PaymentOption", mappedBy="Delivery", cascade={"persist","remove"})
      */
-    private $ProductType;
+    private $PaymentOptions;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\DeliveryFee", mappedBy="Delivery", cascade={"persist","remove"})
      */
     private $DeliveryFees;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="Eccube\Entity\DeliveryTime", mappedBy="Delivery", cascade={"persist","remove"})
      */
     private $DeliveryTimes;
 
     /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var \Eccube\Entity\Master\SaleType
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Master\SaleType")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="sale_type_id", referencedColumnName="id")
+     * })
      */
-    private $PaymentOptions;
+    private $SaleType;
 
     /**
      * Constructor
      */
     public function __construct()
     {
+        $this->PaymentOptions = new \Doctrine\Common\Collections\ArrayCollection();
         $this->DeliveryFees = new \Doctrine\Common\Collections\ArrayCollection();
         $this->DeliveryTimes = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->PaymentOptions = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
         return $this->id;
     }
 
-    public function setProductType(\Eccube\Entity\Master\ProductType $ProductType)
-    {
-        $this->ProductType = $ProductType;
-
-        return $this;
-    }
-
-    public function getProductType()
-    {
-        return $this->ProductType;
-    }
-
     /**
-     * Set name
+     * Set name.
      *
-     * @param  string $name
-     * @return Deliv
+     * @param string|null $name
+     *
+     * @return Delivery
      */
-    public function setName($name)
+    public function setName($name = null)
     {
         $this->name = $name;
 
@@ -146,9 +175,9 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get name
+     * Get name.
      *
-     * @return string
+     * @return string|null
      */
     public function getName()
     {
@@ -156,12 +185,13 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set service_name
+     * Set serviceName.
      *
-     * @param  string $serviceName
-     * @return Deliv
+     * @param string|null $serviceName
+     *
+     * @return Delivery
      */
-    public function setServiceName($serviceName)
+    public function setServiceName($serviceName = null)
     {
         $this->service_name = $serviceName;
 
@@ -169,9 +199,9 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get service_name
+     * Get serviceName.
      *
-     * @return string
+     * @return string|null
      */
     public function getServiceName()
     {
@@ -179,12 +209,13 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set description
+     * Set description.
      *
-     * @param  string $description
+     * @param string|null $description
+     *
      * @return Delivery
      */
-    public function setDescription($description)
+    public function setDescription($description = null)
     {
         $this->description = $description;
 
@@ -192,9 +223,9 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get description
+     * Get description.
      *
-     * @return string
+     * @return string|null
      */
     public function getDescription()
     {
@@ -202,12 +233,13 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set confirm_url
+     * Set confirmUrl.
      *
-     * @param  string $confirmUrl
+     * @param string|null $confirmUrl
+     *
      * @return Delivery
      */
-    public function setConfirmUrl($confirmUrl)
+    public function setConfirmUrl($confirmUrl = null)
     {
         $this->confirm_url = $confirmUrl;
 
@@ -215,9 +247,9 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get confirm_url
+     * Get confirmUrl.
      *
-     * @return string
+     * @return string|null
      */
     public function getConfirmUrl()
     {
@@ -225,56 +257,35 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set rank
+     * Set sortNo.
      *
-     * @param  integer $rank
+     * @param int|null $sortNo
+     *
      * @return Delivery
      */
-    public function setRank($rank)
+    public function setSortNo($sortNo = null)
     {
-        $this->rank = $rank;
+        $this->sort_no = $sortNo;
 
         return $this;
     }
 
     /**
-     * Get rank
+     * Get sortNo.
      *
-     * @return integer
+     * @return int|null
      */
-    public function getRank()
+    public function getSortNo()
     {
-        return $this->rank;
+        return $this->sort_no;
     }
 
     /**
-     * Set del_flg
+     * Set createDate.
      *
-     * @param  integer $delFlg
-     * @return Deliv
-     */
-    public function setDelFlg($delFlg)
-    {
-        $this->del_flg = $delFlg;
-
-        return $this;
-    }
-
-    /**
-     * Get del_flg
+     * @param \DateTime $createDate
      *
-     * @return integer
-     */
-    public function getDelFlg()
-    {
-        return $this->del_flg;
-    }
-
-    /**
-     * Set create_date
-     *
-     * @param  \DateTime $createDate
-     * @return Deliv
+     * @return Delivery
      */
     public function setCreateDate($createDate)
     {
@@ -284,7 +295,7 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -294,10 +305,11 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set update_date
+     * Set updateDate.
      *
-     * @param  \DateTime $updateDate
-     * @return Deliv
+     * @param \DateTime $updateDate
+     *
+     * @return Delivery
      */
     public function setUpdateDate($updateDate)
     {
@@ -307,7 +319,7 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get update_date
+     * Get updateDate.
      *
      * @return \DateTime
      */
@@ -317,30 +329,69 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Add DeliveryFees
+     * Add paymentOption.
      *
-     * @param  \Eccube\Entity\DeliveryFee $DeliveryFees
+     * @param \Eccube\Entity\PaymentOption $paymentOption
+     *
      * @return Delivery
      */
-    public function addDeliveryFee(\Eccube\Entity\DeliveryFee $DeliveryFees)
+    public function addPaymentOption(\Eccube\Entity\PaymentOption $paymentOption)
     {
-        $this->DeliveryFees[] = $DeliveryFees;
+        $this->PaymentOptions[] = $paymentOption;
 
         return $this;
     }
 
     /**
-     * Remove DeliveryFees
+     * Remove paymentOption.
      *
-     * @param \Eccube\Entity\DeliveryFee $DeliveryFees
+     * @param \Eccube\Entity\PaymentOption $paymentOption
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeDeliveryFee(\Eccube\Entity\DeliveryFee $DeliveryFees)
+    public function removePaymentOption(\Eccube\Entity\PaymentOption $paymentOption)
     {
-        $this->DeliveryFees->removeElement($DeliveryFees);
+        return $this->PaymentOptions->removeElement($paymentOption);
     }
 
     /**
-     * Get DeliveryFees
+     * Get paymentOptions.
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getPaymentOptions()
+    {
+        return $this->PaymentOptions;
+    }
+
+    /**
+     * Add deliveryFee.
+     *
+     * @param \Eccube\Entity\DeliveryFee $deliveryFee
+     *
+     * @return Delivery
+     */
+    public function addDeliveryFee(\Eccube\Entity\DeliveryFee $deliveryFee)
+    {
+        $this->DeliveryFees[] = $deliveryFee;
+
+        return $this;
+    }
+
+    /**
+     * Remove deliveryFee.
+     *
+     * @param \Eccube\Entity\DeliveryFee $deliveryFee
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
+     */
+    public function removeDeliveryFee(\Eccube\Entity\DeliveryFee $deliveryFee)
+    {
+        return $this->DeliveryFees->removeElement($deliveryFee);
+    }
+
+    /**
+     * Get deliveryFees.
      *
      * @return \Doctrine\Common\Collections\Collection
      */
@@ -350,30 +401,33 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Add DeliveryTimes
+     * Add deliveryTime.
      *
-     * @param  \Eccube\Entity\DeliveryTime $DeliveryTimes
+     * @param \Eccube\Entity\DeliveryTime $deliveryTime
+     *
      * @return Delivery
      */
-    public function addDeliveryTime(\Eccube\Entity\DeliveryTime $DeliveryTimes)
+    public function addDeliveryTime(\Eccube\Entity\DeliveryTime $deliveryTime)
     {
-        $this->DeliveryTimes[] = $DeliveryTimes;
+        $this->DeliveryTimes[] = $deliveryTime;
 
         return $this;
     }
 
     /**
-     * Remove DeliveryTimes
+     * Remove deliveryTime.
      *
-     * @param \Eccube\Entity\DeliveryTime $DeliveryTimes
+     * @param \Eccube\Entity\DeliveryTime $deliveryTime
+     *
+     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeDeliveryTime(\Eccube\Entity\DeliveryTime $DeliveryTimes)
+    public function removeDeliveryTime(\Eccube\Entity\DeliveryTime $deliveryTime)
     {
-        $this->DeliveryTimes->removeElement($DeliveryTimes);
+        return $this->DeliveryTimes->removeElement($deliveryTime);
     }
 
     /**
-     * Get DeliveryTimes
+     * Get deliveryTimes.
      *
      * @return \Doctrine\Common\Collections\Collection
      */
@@ -383,62 +437,74 @@ class Delivery extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set creator.
      *
-     * @param  \Eccube\Entity\Member $Creator
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return Delivery
      */
-    public function setCreator(\Eccube\Entity\Member $Creator)
+    public function setCreator(\Eccube\Entity\Member $creator = null)
     {
-        $this->Creator = $Creator;
+        $this->Creator = $creator;
 
         return $this;
     }
 
     /**
-     * Get Creator
+     * Get creator.
      *
-     * @return \Eccube\Entity\Member
+     * @return \Eccube\Entity\Member|null
      */
     public function getCreator()
     {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
         return $this->Creator;
     }
 
     /**
-     * Add PaymentOptions
+     * Set saleType.
      *
-     * @param  \Eccube\Entity\PaymentOption $PaymentOption
+     * @param \Eccube\Entity\Master\SaleType|null $saleType
+     *
      * @return Delivery
      */
-    public function addPaymentOption(\Eccube\Entity\PaymentOption $PaymentOption)
+    public function setSaleType(\Eccube\Entity\Master\SaleType $saleType = null)
     {
-        $this->PaymentOptions[] = $PaymentOption;
+        $this->SaleType = $saleType;
 
         return $this;
     }
 
     /**
-     * Remove PaymentOptions
+     * Get saleType.
      *
-     * @param \Eccube\Entity\PaymentOption $PaymentOption
+     * @return \Eccube\Entity\Master\SaleType|null
      */
-    public function removePaymentOption(\Eccube\Entity\PaymentOption $PaymentOption)
+    public function getSaleType()
     {
-        $this->PaymentOptions->removeElement($PaymentOption);
+        return $this->SaleType;
     }
 
     /**
-     * Get PaymentOptions
+     * Set visible
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @param boolean $visible
+     *
+     * @return Delivery
      */
-    public function getPaymentOptions()
+    public function setVisible($visible)
     {
-        return $this->PaymentOptions;
+        $this->visible = $visible;
+
+        return $this;
     }
 
+    /**
+     * Is the visibility visible?
+     *
+     * @return boolean
+     */
+    public function isVisible()
+    {
+        return $this->visible;
+    }
 }

@@ -1,46 +1,96 @@
 <?php
 
+/*
+ * This file is part of EC-CUBE
+ *
+ * Copyright(c) LOCKON CO.,LTD. All Rights Reserved.
+ *
+ * http://www.lockon.co.jp/
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Eccube\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Eccube\Util\EntityUtil;
-
 
 /**
  * ProductTag
+ *
+ * @ORM\Table(name="dtb_product_tag")
+ * @ORM\InheritanceType("SINGLE_TABLE")
+ * @ORM\DiscriminatorColumn(name="discriminator_type", type="string", length=255)
+ * @ORM\HasLifecycleCallbacks()
+ * @ORM\Entity(repositoryClass="Eccube\Repository\ProductTagRepository")
  */
 class ProductTag extends \Eccube\Entity\AbstractEntity
 {
     /**
+     * Get tag_id
+     * use csv export
+     *
+     * @return integer
+     */
+    public function getTagId()
+    {
+        if (empty($this->Tag)) {
+            return null;
+        }
+
+        return $this->Tag->getId();
+    }
+
+    /**
      * @var integer
+     *
+     * @ORM\Column(name="id", type="integer", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
 
     /**
      * @var \DateTime
+     *
+     * @ORM\Column(name="create_date", type="datetimetz")
      */
     private $create_date;
 
     /**
      * @var \Eccube\Entity\Product
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Product", inversedBy="ProductTag")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="product_id", referencedColumnName="id")
+     * })
      */
     private $Product;
 
     /**
-     * @var \Eccube\Entity\Master\Tag
+     * @var \Eccube\Entity\Tag
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Tag", inversedBy="ProductTag")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="tag_id", referencedColumnName="id")
+     * })
      */
     private $Tag;
 
     /**
      * @var \Eccube\Entity\Member
+     *
+     * @ORM\ManyToOne(targetEntity="Eccube\Entity\Member")
+     * @ORM\JoinColumns({
+     *   @ORM\JoinColumn(name="creator_id", referencedColumnName="id")
+     * })
      */
     private $Creator;
 
-
     /**
-     * Get id
+     * Get id.
      *
-     * @return integer
+     * @return int
      */
     public function getId()
     {
@@ -48,9 +98,10 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set create_date
+     * Set createDate.
      *
      * @param \DateTime $createDate
+     *
      * @return ProductTag
      */
     public function setCreateDate($createDate)
@@ -61,7 +112,7 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get create_date
+     * Get createDate.
      *
      * @return \DateTime
      */
@@ -71,12 +122,13 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Product
+     * Set product.
      *
-     * @param \Eccube\Entity\Product $product
+     * @param \Eccube\Entity\Product|null $product
+     *
      * @return ProductTag
      */
-    public function setProduct(\Eccube\Entity\Product $product)
+    public function setProduct(\Eccube\Entity\Product $product = null)
     {
         $this->Product = $product;
 
@@ -84,9 +136,9 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Product
+     * Get product.
      *
-     * @return \Eccube\Entity\Product
+     * @return \Eccube\Entity\Product|null
      */
     public function getProduct()
     {
@@ -94,12 +146,13 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Tag
+     * Set tag.
      *
-     * @param \Eccube\Entity\Master\Tag $tag
+     * @param \Eccube\Entity\Tag|null $tag
+     *
      * @return ProductTag
      */
-    public function setTag(\Eccube\Entity\Master\Tag $tag)
+    public function setTag(\Eccube\Entity\Tag $tag = null)
     {
         $this->Tag = $tag;
 
@@ -107,9 +160,9 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Tag
+     * Get tag.
      *
-     * @return \Eccube\Entity\Master\Tag
+     * @return \Eccube\Entity\Tag|null
      */
     public function getTag()
     {
@@ -117,12 +170,13 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Set Creator
+     * Set creator.
      *
-     * @param \Eccube\Entity\Member $creator
+     * @param \Eccube\Entity\Member|null $creator
+     *
      * @return ProductTag
      */
-    public function setCreator(\Eccube\Entity\Member $creator)
+    public function setCreator(\Eccube\Entity\Member $creator = null)
     {
         $this->Creator = $creator;
 
@@ -130,29 +184,12 @@ class ProductTag extends \Eccube\Entity\AbstractEntity
     }
 
     /**
-     * Get Creator
+     * Get creator.
      *
-     * @return \Eccube\Entity\Member
+     * @return \Eccube\Entity\Member|null
      */
     public function getCreator()
     {
-        if (EntityUtil::isEmpty($this->Creator)) {
-            return null;
-        }
         return $this->Creator;
-    }
-
-    /**
-     * Get tag_id
-     * use csv export
-     *
-     * @return integer
-     */
-    public function getTagId()
-    {
-        if (empty($this->Tag)){
-            return null;
-        }
-        return $this->Tag->getId();
     }
 }
