@@ -19,6 +19,7 @@ use Eccube\Entity\Master\OrderItemType;
 use Eccube\Entity\Master\TaxDisplayType;
 use Eccube\Entity\Master\TaxType;
 use Eccube\Entity\OrderItem;
+use Eccube\Entity\PointHistory;
 use Eccube\Repository\BaseInfoRepository;
 use Eccube\Service\PurchaseFlow\Processor\PointProcessor;
 
@@ -158,6 +159,14 @@ class PointHelper
         // ユーザの保有ポイントを減算
         $Customer = $itemHolder->getCustomer();
         $Customer->setPoint($Customer->getPoint() - $point);
+        
+        $obj = new PointHistory();
+        $obj->setPoint(-$point);
+        $obj->setCustomer($Customer);
+        $obj->setOrder($itemHolder);
+        $em = $this->entityManager;
+        $em->persist($obj);
+        
     }
 
     public function rollback(ItemHolderInterface $itemHolder, $point)
@@ -165,5 +174,12 @@ class PointHelper
         // 利用したポイントをユーザに戻す.
         $Customer = $itemHolder->getCustomer();
         $Customer->setPoint($Customer->getPoint() + $point);
+        
+        $obj = new PointHistory();
+        $obj->setPoint($point);
+        $obj->setCustomer($Customer);
+        $obj->setOrder($itemHolder);
+        $em = $this->entityManager;
+        $em->persist($obj);
     }
 }

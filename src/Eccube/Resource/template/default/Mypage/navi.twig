@@ -34,6 +34,28 @@ file that was distributed with this source code.
     <p>{{ 'front.mypage.welcome'|trans({ '%last_name%': app.user.name01, '%first_name%': app.user.name02 }) }}</p>
     {% if BaseInfo.option_point %}
         <p>{{ 'front.mypage.welcome__point'|trans({ '%point%': app.user.point|number_format}) }}</p>
+        <table class="table table-striped table-sm table-bordered">
+            <thead>
+            <th>日付</th>
+            <th>利用・獲得</th></th>
+            <th>ポイント数</th>
+            <th>ご注文番号</th>
+            </thead>
+            {% for history in point_history %}
+            <tr>
+                <td>{{ history.create_date|date_min }}</td>
+                <td>
+                {% if history.point < 0 %}
+                    利用
+                {% else %}
+                    獲得
+                {% endif %}
+                </td>
+                <td>{{ history.point }}</td>
+                <td>{{ history.order.id|default }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     {% endif %}
 </div>
 

@@ -13,8 +13,10 @@
 
 namespace Eccube\Service;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Eccube\Entity\Master\OrderStatus;
 use Eccube\Entity\Order;
+use Eccube\Entity\PointHistory;
 use Eccube\Repository\Master\OrderStatusRepository;
 use Eccube\Service\PurchaseFlow\Processor\PointProcessor;
 use Eccube\Service\PurchaseFlow\Processor\StockReduceProcessor;
@@ -43,13 +45,19 @@ class OrderStateMachine implements EventSubscriberInterface
      * @var StockReduceProcessor
      */
     private $stockReduceProcessor;
+    
+    /**
+     * @var EntityManagerInterface
+     */
+    protected $entityManager;
 
-    public function __construct(StateMachine $_orderStateMachine, OrderStatusRepository $orderStatusRepository, PointProcessor $pointProcessor, StockReduceProcessor $stockReduceProcessor)
+    public function __construct(StateMachine $_orderStateMachine, OrderStatusRepository $orderStatusRepository, PointProcessor $pointProcessor, StockReduceProcessor $stockReduceProcessor, EntityManagerInterface $entityManager)
     {
         $this->machine = $_orderStateMachine;
         $this->orderStatusRepository = $orderStatusRepository;
         $this->pointProcessor = $pointProcessor;
         $this->stockReduceProcessor = $stockReduceProcessor;
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -190,6 +198,13 @@ class OrderStateMachine implements EventSubscriberInterface
         $Customer = $Order->getCustomer();
         if ($Customer) {
             $Customer->setPoint(intval($Customer->getPoint()) + intval($Order->getAddPoint()));
+            
+            $obj = new PointHistory();
+            $obj->setPoint(intval($Order->getAddPoint()));
+            $obj->setCustomer($Customer);
+            $obj->setOrder($Order);
+            $em = $this->entityManager;
+            $em->persist($obj);
         }
     }
 
@@ -205,6 +220,13 @@ class OrderStateMachine implements EventSubscriberInterface
         $Customer = $Order->getCustomer();
         if ($Customer) {
             $Customer->setPoint(intval($Customer->getPoint()) - intval($Order->getAddPoint()));
+            
+            $obj = new PointHistory();
+            $obj->setPoint(intval($Order->getAddPoint()));
+            $obj->setCustomer($Customer);
+            $obj->setOrder($Order);
+            $em = $this->entityManager;
+            $em->persist($obj);
         }
     }
 

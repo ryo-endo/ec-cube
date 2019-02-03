@@ -26,6 +26,7 @@ use Eccube\Repository\BaseInfoRepository;
 use Eccube\Repository\CustomerFavoriteProductRepository;
 use Eccube\Repository\OrderRepository;
 use Eccube\Repository\ProductRepository;
+use Eccube\Repository\PointHistoryRepository;
 use Eccube\Service\CartService;
 use Eccube\Service\PurchaseFlow\PurchaseContext;
 use Eccube\Service\PurchaseFlow\PurchaseFlow;
@@ -63,6 +64,11 @@ class MypageController extends AbstractController
      * @var OrderRepository
      */
     protected $orderRepository;
+    
+    /**
+     * @var PointHistoryRepository
+     */
+    protected $pointHitoryRepository;
 
     /**
      * @var PurchaseFlow
@@ -83,9 +89,11 @@ class MypageController extends AbstractController
         CustomerFavoriteProductRepository $customerFavoriteProductRepository,
         CartService $cartService,
         BaseInfoRepository $baseInfoRepository,
-        PurchaseFlow $purchaseFlow
+        PurchaseFlow $purchaseFlow,
+        PointHistoryRepository $pointHistoryRepository
     ) {
         $this->orderRepository = $orderRepository;
+        $this->pointHistoryRepository = $pointHistoryRepository;
         $this->customerFavoriteProductRepository = $customerFavoriteProductRepository;
         $this->BaseInfo = $baseInfoRepository->get();
         $this->cartService = $cartService;
@@ -169,8 +177,11 @@ class MypageController extends AbstractController
             $this->eccubeConfig['eccube_search_pmax']
         );
 
+        $obj = $this->pointHistoryRepository->findBy(['Customer' => $Customer]);
+
         return [
             'pagination' => $pagination,
+            'point_history' => $obj,
         ];
     }
 
