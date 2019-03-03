@@ -177,7 +177,7 @@ class MypageController extends AbstractController
             $this->eccubeConfig['eccube_search_pmax']
         );
 
-        $obj = $this->pointHistoryRepository->findBy(['Customer' => $Customer]);
+        $obj = $this->pointHistoryRepository->findBy(['Customer' => $Customer], ['id' => 'ASC']);
 
         return [
             'pagination' => $pagination,

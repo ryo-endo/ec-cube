@@ -55,7 +55,7 @@ file that was distributed with this source code.
                 </td>
                 <td>{{ history.point }}</td>
                 <td>{{ history.order.id|default }}</td>
-                <td>{{ history.expirationDate|date_day }}</td>
+                <td>{{ history.expirationDate|date_day }} ({{ history.expirationDate|date('U') }})</td>
             </tr>
             {% endif %}
             {% endfor %}

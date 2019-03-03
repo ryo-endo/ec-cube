@@ -46,7 +46,6 @@ class PointHistoryRepository extends AbstractRepository
             
             $qb->select('SUM(p.point) AS point, p.expiration_date AS date')
             ->where('p.Customer = :Customer')
-            ->andWhere('p.record_type =:type')
             ->andWhere(
                 $qb->expr()->andX(
                     $qb->expr()->isNotNull('p.expiration_date'),
@@ -56,7 +55,6 @@ class PointHistoryRepository extends AbstractRepository
             ->orderBy('p.expiration_date', 'asc')
             ->groupBy('p.expiration_date')
             ->setParameter('Customer', $Customer)
-            ->setParameter('type', PointHistory::TYPE_ADD)
             ->setParameter('now', new \DateTime('now'));
             
             return $qb->getQuery()->getArrayResult();
