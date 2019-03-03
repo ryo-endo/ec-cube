@@ -14,6 +14,7 @@
 namespace Eccube\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Eccube\Common\EccubeConfig;
 use Eccube\Entity\Master\OrderStatus;
 use Eccube\Entity\Order;
 use Eccube\Entity\PointHistory;
@@ -50,14 +51,20 @@ class OrderStateMachine implements EventSubscriberInterface
      * @var EntityManagerInterface
      */
     protected $entityManager;
+    
+    /**
+     * @var EccubeConfig
+     */
+    protected $eccubeConfig;
 
-    public function __construct(StateMachine $_orderStateMachine, OrderStatusRepository $orderStatusRepository, PointProcessor $pointProcessor, StockReduceProcessor $stockReduceProcessor, EntityManagerInterface $entityManager)
+    public function __construct(StateMachine $_orderStateMachine, OrderStatusRepository $orderStatusRepository, PointProcessor $pointProcessor, StockReduceProcessor $stockReduceProcessor, EntityManagerInterface $entityManager, EccubeConfig $eccubeConfig)
     {
         $this->machine = $_orderStateMachine;
         $this->orderStatusRepository = $orderStatusRepository;
         $this->pointProcessor = $pointProcessor;
         $this->stockReduceProcessor = $stockReduceProcessor;
         $this->entityManager = $entityManager;
+        $this->eccubeConfig = $eccubeConfig;
     }
 
     /**
@@ -203,6 +210,7 @@ class OrderStateMachine implements EventSubscriberInterface
             $obj->setPoint(intval($Order->getAddPoint()));
             $obj->setCustomer($Customer);
             $obj->setOrder($Order);
+            $obj->setExpirationDate($Order->getOrderDate()->modify($this->eccubeConfig['eccube_point_lifetime']));
             $em = $this->entityManager;
             $em->persist($obj);
         }
