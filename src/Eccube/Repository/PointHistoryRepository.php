@@ -20,13 +20,48 @@ class PointHistoryRepository extends AbstractRepository
     }
     
     public function getCurrentPoint(\Eccube\Entity\Customer $Customer){
-        $result = $this->createQueryBuilder('p')
-        ->select('SUM(p.point) AS total')
+        $qb = $this->createQueryBuilder('p');
+        
+        $result = $qb->select('SUM(p.point) AS total')
         ->where('p.Customer = :Customer')
+        ->andWhere(
+            // 有効期限内のポイントのみ計算に含める
+            $qb->expr()->orX(
+                $qb->expr()->isNull('p.expiration_date'),
+                $qb->expr()->gt('p.expiration_date', ':now')
+            )
+        )
         ->setParameter('Customer', $Customer)
+        ->setParameter('now', new \DateTime('now'))
         ->getQuery()
         ->getSingleResult();
         
         return $result['total'];
+    }
+    
+    // 有効期限のあるポイントの一覧を取得する
+    public function getExpirationPoints(\Eccube\Entity\Customer $Customer){
+        try {
+            $qb = $this->createQueryBuilder('p');
+            
+            $qb->select('SUM(p.point) AS point, p.expiration_date AS date')
+            ->where('p.Customer = :Customer')
+            ->andWhere('p.record_type =:type')
+            ->andWhere(
+                $qb->expr()->andX(
+                    $qb->expr()->isNotNull('p.expiration_date'),
+                    $qb->expr()->gt('p.expiration_date', ':now')
+                )
+            )
+            ->orderBy('p.expiration_date', 'asc')
+            ->groupBy('p.expiration_date')
+            ->setParameter('Customer', $Customer)
+            ->setParameter('type', PointHistory::TYPE_ADD)
+            ->setParameter('now', new \DateTime('now'));
+            
+            return $qb->getQuery()->getArrayResult();
+        } catch (NoResultException $e) {
+            return array(); // 空を返す
+        }
     }
 }

@@ -164,14 +164,61 @@ class PointHelper
     public function prepare(ItemHolderInterface $itemHolder, $point)
     {
         $Customer = $itemHolder->getCustomer();
+        $usePoint = $point;
         
+        // まずは期間限定ポイントを優先して消化する
+        {
+            // 期間限定ポイントの一覧を取得する(有効期限が近い順)
+            $expirationPoints = $this->pointHistoryRepository->getExpirationPoints($Customer);
+
+            // 期間限定ポイントを１つずつ確認して、次に消費する期間限定ポイントのレコードを探す
+            /** @var array $expirationPointList */
+            foreach ($expirationPoints as $expirationPoint) {
+                $expirationDate = $expirationPoint['date'];
+                $offsetPoint = $expirationPoint['point'];
+
+                if (0 >= $offsetPoint) {
+                    continue;
+                }
+
+                // 期間限定の獲得ポイントに対応する、期間限定の利用ポイントとして登録する
+                $val = 0;
+                if ($usePoint >= $offsetPoint) {
+                    $val = $offsetPoint;
+                } else {
+                    $val = $usePoint;
+                }
+                
+                // ユーザの保有ポイントを減算する履歴を追加
+                $obj = new PointHistory();
+                $obj->setRecordType(PointHistory::TYPE_USE);
+                $obj->setPoint(-$val);
+                $obj->setCustomer($Customer);
+                $obj->setOrder($itemHolder);
+                $obj->setExpirationDate($expirationDate);
+                $em = $this->entityManager;
+                $em->persist($obj);
+                
+                $usePoint -= $val;
+
+                // 利用ポイントをすべて消化したら、これ以上はループ不要
+                if (0 >= $usePoint) {
+                    break;
+                }
+            }
+        }
+        
+        // 残りを通常の利用ポイントとして登録する
         // ユーザの保有ポイントを減算する履歴を追加
-        $obj = new PointHistory();
-        $obj->setPoint(-$point);
-        $obj->setCustomer($Customer);
-        $obj->setOrder($itemHolder);
-        $em = $this->entityManager;
-        $em->persist($obj);
+        if ($usePoint > 0) {
+            $obj = new PointHistory();
+            $obj->setRecordType(PointHistory::TYPE_USE);
+            $obj->setPoint(-$usePoint);
+            $obj->setCustomer($Customer);
+            $obj->setOrder($itemHolder);
+            $em = $this->entityManager;
+            $em->persist($obj);
+        }
         
         // 再集計
         $this->recount($Customer);
@@ -184,6 +231,7 @@ class PointHelper
         
         // 利用したポイントをユーザに戻す履歴を追加
         $obj = new PointHistory();
+        $obj->setRecordType(PointHistory::TYPE_ADD);
         $obj->setPoint($point);
         $obj->setCustomer($Customer);
         $obj->setOrder($itemHolder);

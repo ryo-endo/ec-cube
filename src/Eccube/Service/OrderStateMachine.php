@@ -215,6 +215,7 @@ class OrderStateMachine implements EventSubscriberInterface
             
             // 履歴を追加
             $obj = new PointHistory();
+            $obj->setRecordType(PointHistory::TYPE_ADD);
             $obj->setPoint($addPoint);
             $obj->setCustomer($Customer);
             $obj->setOrder($Order);
@@ -243,6 +244,7 @@ class OrderStateMachine implements EventSubscriberInterface
             
             // 履歴を追加
             $obj = new PointHistory();
+            $obj->setRecordType(PointHistory::TYPE_USE);
             $obj->setPoint(-$addPoint);
             $obj->setCustomer($Customer);
             $obj->setOrder($Order);

@@ -15,6 +15,10 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
      */
     class PointHistory extends \Eccube\Entity\AbstractEntity
     {
+        const TYPE_NULL = 0;
+        const TYPE_ADD = 1;
+        const TYPE_USE = 2;
+        
         /**
          * @return string
          */
@@ -72,6 +76,13 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
          * @ORM\Column(name="expiration_date", type="datetimetz", nullable=true)
          */
         private $expiration_date;
+        
+        /**
+         * @var int
+         *
+         * @ORM\Column(name="record_type", type="integer", nullable=true)
+         */
+        private $record_type = self::TYPE_NULL;
 
         /**
          * Constructor
@@ -211,6 +222,30 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
         public function getExpirationDate()
         {
             return $this->expiration_date;
+        }
+        
+        /**
+         * Set recordType.
+         *
+         * @param int $record_type
+         *
+         * @return PointHistory
+         */
+        public function setRecordType($record_type)
+        {
+            $this->record_type = $record_type;
+    
+            return $this;
+        }
+    
+        /**
+         * Get recordType.
+         *
+         * @return int
+         */
+        public function getRecordType()
+        {
+            return $this->record_type;
         }
     }
 }
