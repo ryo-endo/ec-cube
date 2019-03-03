@@ -40,8 +40,10 @@ file that was distributed with this source code.
             <th>利用・獲得</th></th>
             <th>ポイント数</th>
             <th>ご注文番号</th>
+            <th>有効期限</th>
             </thead>
             {% for history in point_history %}
+            {% if 0 != history.point %} 
             <tr>
                 <td>{{ history.create_date|date_min }}</td>
                 <td>
@@ -53,7 +55,9 @@ file that was distributed with this source code.
                 </td>
                 <td>{{ history.point }}</td>
                 <td>{{ history.order.id|default }}</td>
+                <td>{{ history.expirationDate|date_day }}</td>
             </tr>
+            {% endif %}
             {% endfor %}
         </table>
     {% endif %}
