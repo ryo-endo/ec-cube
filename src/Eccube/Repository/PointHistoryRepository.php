@@ -2,6 +2,7 @@
 
 namespace Eccube\Repository;
 
+use Eccube\Entity\Customer;
 use Eccube\Entity\PointHistory;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
@@ -16,5 +17,16 @@ class PointHistoryRepository extends AbstractRepository
     public function __construct(RegistryInterface $registry)
     {
         parent::__construct($registry, PointHistory::class);
+    }
+    
+    public function getCurrentPoint(\Eccube\Entity\Customer $Customer){
+        $result = $this->createQueryBuilder('p')
+        ->select('SUM(p.point) AS total')
+        ->where('p.Customer = :Customer')
+        ->setParameter('Customer', $Customer)
+        ->getQuery()
+        ->getSingleResult();
+        
+        return $result['total'];
     }
 }

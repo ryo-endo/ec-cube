@@ -21,6 +21,7 @@ use Eccube\Entity\Master\TaxType;
 use Eccube\Entity\OrderItem;
 use Eccube\Entity\PointHistory;
 use Eccube\Repository\BaseInfoRepository;
+use Eccube\Repository\PointHistoryRepository;
 use Eccube\Service\PurchaseFlow\Processor\PointProcessor;
 
 class PointHelper
@@ -34,6 +35,11 @@ class PointHelper
      * @var EntityManagerInterface
      */
     protected $entityManager;
+    
+    /**
+     * @var PointHistoryRepository
+     */
+    protected $pointHitoryRepository;
 
     /**
      * PointHelper constructor.
@@ -41,10 +47,11 @@ class PointHelper
      * @param BaseInfoRepository $baseInfoRepository
      * @param EntityManagerInterface $entityManager
      */
-    public function __construct(BaseInfoRepository $baseInfoRepository, EntityManagerInterface $entityManager)
+    public function __construct(BaseInfoRepository $baseInfoRepository, EntityManagerInterface $entityManager, PointHistoryRepository $pointHistoryRepository)
     {
         $this->baseInfoRepository = $baseInfoRepository;
         $this->entityManager = $entityManager;
+        $this->pointHistoryRepository = $pointHistoryRepository;
     }
 
     /**
@@ -156,10 +163,9 @@ class PointHelper
 
     public function prepare(ItemHolderInterface $itemHolder, $point)
     {
-        // ユーザの保有ポイントを減算
         $Customer = $itemHolder->getCustomer();
-        $Customer->setPoint($Customer->getPoint() - $point);
         
+        // ユーザの保有ポイントを減算する履歴を追加
         $obj = new PointHistory();
         $obj->setPoint(-$point);
         $obj->setCustomer($Customer);
@@ -167,19 +173,30 @@ class PointHelper
         $em = $this->entityManager;
         $em->persist($obj);
         
+        // 再集計
+        $this->recount($Customer);
+        $Customer->setPoint(intval($Customer->getPoint()) - $point);
     }
 
     public function rollback(ItemHolderInterface $itemHolder, $point)
     {
-        // 利用したポイントをユーザに戻す.
         $Customer = $itemHolder->getCustomer();
-        $Customer->setPoint($Customer->getPoint() + $point);
         
+        // 利用したポイントをユーザに戻す履歴を追加
         $obj = new PointHistory();
         $obj->setPoint($point);
         $obj->setCustomer($Customer);
         $obj->setOrder($itemHolder);
         $em = $this->entityManager;
         $em->persist($obj);
+        
+        // 再集計
+        $this->recount($Customer);
+        $Customer->setPoint(intval($Customer->getPoint()) + $point);
+    }
+    
+    public function recount(\Eccube\Entity\Customer $Customer) {
+        $newPoint = $this->pointHistoryRepository->getCurrentPoint($Customer);
+        $Customer->setPoint($newPoint);
     }
 }

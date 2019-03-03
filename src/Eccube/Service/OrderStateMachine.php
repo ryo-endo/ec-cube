@@ -19,6 +19,7 @@ use Eccube\Entity\Master\OrderStatus;
 use Eccube\Entity\Order;
 use Eccube\Entity\PointHistory;
 use Eccube\Repository\Master\OrderStatusRepository;
+use Eccube\Service\PointHelper;
 use Eccube\Service\PurchaseFlow\Processor\PointProcessor;
 use Eccube\Service\PurchaseFlow\Processor\StockReduceProcessor;
 use Eccube\Service\PurchaseFlow\PurchaseContext;
@@ -56,8 +57,13 @@ class OrderStateMachine implements EventSubscriberInterface
      * @var EccubeConfig
      */
     protected $eccubeConfig;
+    
+    /**
+     * @var PointHelper
+     */
+    protected $pointHelper;
 
-    public function __construct(StateMachine $_orderStateMachine, OrderStatusRepository $orderStatusRepository, PointProcessor $pointProcessor, StockReduceProcessor $stockReduceProcessor, EntityManagerInterface $entityManager, EccubeConfig $eccubeConfig)
+    public function __construct(StateMachine $_orderStateMachine, OrderStatusRepository $orderStatusRepository, PointProcessor $pointProcessor, StockReduceProcessor $stockReduceProcessor, EntityManagerInterface $entityManager, EccubeConfig $eccubeConfig, PointHelper $pointHelper)
     {
         $this->machine = $_orderStateMachine;
         $this->orderStatusRepository = $orderStatusRepository;
@@ -65,6 +71,7 @@ class OrderStateMachine implements EventSubscriberInterface
         $this->stockReduceProcessor = $stockReduceProcessor;
         $this->entityManager = $entityManager;
         $this->eccubeConfig = $eccubeConfig;
+        $this->pointHelper = $pointHelper;
     }
 
     /**
@@ -204,15 +211,20 @@ class OrderStateMachine implements EventSubscriberInterface
         $Order = $event->getSubject()->getOrder();
         $Customer = $Order->getCustomer();
         if ($Customer) {
-            $Customer->setPoint(intval($Customer->getPoint()) + intval($Order->getAddPoint()));
+            $addPoint = intval($Order->getAddPoint());
             
+            // 履歴を追加
             $obj = new PointHistory();
-            $obj->setPoint(intval($Order->getAddPoint()));
+            $obj->setPoint($addPoint);
             $obj->setCustomer($Customer);
             $obj->setOrder($Order);
             $obj->setExpirationDate($Order->getOrderDate()->modify($this->eccubeConfig['eccube_point_lifetime']));
             $em = $this->entityManager;
             $em->persist($obj);
+            
+            // 再集計
+            $this->pointHelper->recount($Customer);
+            $Customer->setPoint(intval($Customer->getPoint()) + $addPoint);
         }
     }
 
@@ -227,14 +239,19 @@ class OrderStateMachine implements EventSubscriberInterface
         $Order = $event->getSubject()->getOrder();
         $Customer = $Order->getCustomer();
         if ($Customer) {
-            $Customer->setPoint(intval($Customer->getPoint()) - intval($Order->getAddPoint()));
+            $addPoint = intval($Order->getAddPoint());
             
+            // 履歴を追加
             $obj = new PointHistory();
-            $obj->setPoint(intval($Order->getAddPoint()));
+            $obj->setPoint(-$addPoint);
             $obj->setCustomer($Customer);
             $obj->setOrder($Order);
             $em = $this->entityManager;
             $em->persist($obj);
+            
+            // 再集計
+            $this->pointHelper->recount($Customer);
+            $Customer->setPoint(intval($Customer->getPoint()) - $addPoint);
         }
     }
 
