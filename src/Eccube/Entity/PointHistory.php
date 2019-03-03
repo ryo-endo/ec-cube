@@ -65,6 +65,13 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
          * @ORM\Column(name="create_date", type="datetimetz")
          */
         private $create_date;
+        
+        /**
+         * @var \DateTime
+         *
+         * @ORM\Column(name="expiration_date", type="datetimetz", nullable=true)
+         */
+        private $expiration_date;
 
         /**
          * Constructor
@@ -180,6 +187,30 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
         public function getOrder()
         {
             return $this->Order;
+        }
+        
+        /**
+         * Set expirationDate.
+         *
+         * @param \DateTime $expirationDate
+         *
+         * @return PointHistory
+         */
+        public function setExpirationDate($expirationDate)
+        {
+            $this->expiration_date = $expirationDate;
+
+            return $this;
+        }
+
+        /**
+         * Get expirationDate.
+         *
+         * @return \DateTime
+         */
+        public function getExpirationDate()
+        {
+            return $this->expiration_date;
         }
     }
 }
