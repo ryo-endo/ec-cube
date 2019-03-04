@@ -198,6 +198,7 @@ class PointHelper
                 $obj->setExpirationDate($expirationDate);
                 $em = $this->entityManager;
                 $em->persist($obj);
+                $em->flush($obj);
                 
                 $usePoint -= $val;
 
@@ -218,11 +219,11 @@ class PointHelper
             $obj->setOrder($itemHolder);
             $em = $this->entityManager;
             $em->persist($obj);
+            $em->flush($obj);
         }
         
         // 再集計
         $this->recount($Customer);
-        $Customer->setPoint(intval($Customer->getPoint()) - $point);
     }
 
     public function rollback(ItemHolderInterface $itemHolder, $point)
@@ -237,10 +238,10 @@ class PointHelper
         $obj->setOrder($itemHolder);
         $em = $this->entityManager;
         $em->persist($obj);
+        $em->flush($obj);
         
         // 再集計
         $this->recount($Customer);
-        $Customer->setPoint(intval($Customer->getPoint()) + $point);
     }
     
     public function recount(\Eccube\Entity\Customer $Customer) {

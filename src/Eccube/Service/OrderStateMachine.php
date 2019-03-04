@@ -222,10 +222,10 @@ class OrderStateMachine implements EventSubscriberInterface
             $obj->setExpirationDate($Order->getOrderDate()->modify($this->eccubeConfig['eccube_point_lifetime']));
             $em = $this->entityManager;
             $em->persist($obj);
+            $em->flush($obj);
             
             // 再集計
             $this->pointHelper->recount($Customer);
-            $Customer->setPoint(intval($Customer->getPoint()) + $addPoint);
         }
     }
 
@@ -250,10 +250,10 @@ class OrderStateMachine implements EventSubscriberInterface
             $obj->setOrder($Order);
             $em = $this->entityManager;
             $em->persist($obj);
+            $em->flush($obj);
             
             // 再集計
             $this->pointHelper->recount($Customer);
-            $Customer->setPoint(intval($Customer->getPoint()) - $addPoint);
         }
     }
 
