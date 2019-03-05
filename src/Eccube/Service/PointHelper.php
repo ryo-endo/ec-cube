@@ -14,6 +14,7 @@
 namespace Eccube\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Eccube\Common\EccubeConfig;
 use Eccube\Entity\ItemHolderInterface;
 use Eccube\Entity\Master\OrderItemType;
 use Eccube\Entity\Master\TaxDisplayType;
@@ -40,6 +41,11 @@ class PointHelper
      * @var PointHistoryRepository
      */
     protected $pointHitoryRepository;
+    
+    /**
+     * @var EccubeConfig
+     */
+    private $eccubeConfig;
 
     /**
      * PointHelper constructor.
@@ -47,11 +53,12 @@ class PointHelper
      * @param BaseInfoRepository $baseInfoRepository
      * @param EntityManagerInterface $entityManager
      */
-    public function __construct(BaseInfoRepository $baseInfoRepository, EntityManagerInterface $entityManager, PointHistoryRepository $pointHistoryRepository)
+    public function __construct(BaseInfoRepository $baseInfoRepository, EntityManagerInterface $entityManager, PointHistoryRepository $pointHistoryRepository, EccubeConfig $eccubeConfig)
     {
         $this->baseInfoRepository = $baseInfoRepository;
         $this->entityManager = $entityManager;
         $this->pointHistoryRepository = $pointHistoryRepository;
+        $this->eccubeConfig = $eccubeConfig;
     }
 
     /**
@@ -253,16 +260,15 @@ class PointHelper
     
     // 会員登録時ポイントを付与する
     public function addEntryPoint(\Eccube\Entity\Customer $Customer) {
-        $point = 500;
+        $point = $this->eccubeConfig['eccube_point_entry_point'];
         
         $now = new \DateTime();
-        $expirationDate = $now->modify('+2 months');
+        $expirationDate = $now->modify($this->eccubeConfig['eccube_point_entry_lifetime']);
         
         $obj = new PointHistory();
         $obj->setRecordType(PointHistory::TYPE_ADD);
         $obj->setPoint($point);
         $obj->setCustomer($Customer);
-        // $obj->setExpirationDate($Customer->getCreateDate()->modify($this->eccubeConfig['eccube_point_entry_lifetime']));
         $obj->setExpirationDate($expirationDate);
         $em = $this->entityManager;
         $em->persist($obj);
