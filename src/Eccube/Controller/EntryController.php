@@ -32,6 +32,7 @@ use Symfony\Component\Security\Core\Encoder\EncoderFactoryInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Eccube\Service\CartService;
+use Eccube\Service\PointHelper;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class EntryController extends AbstractController
@@ -75,6 +76,11 @@ class EntryController extends AbstractController
      * @var \Eccube\Service\CartService
      */
     protected $cartService;
+    
+    /**
+     * @var PointHelper
+     */
+    protected $pointHelper;
 
     /**
      * EntryController constructor.
@@ -87,6 +93,7 @@ class EntryController extends AbstractController
      * @param EncoderFactoryInterface $encoderFactory
      * @param ValidatorInterface $validatorInterface
      * @param TokenStorageInterface $tokenStorage
+     * @param PointHelper $pointHelper
      */
     public function __construct(
         CartService $cartService,
@@ -96,7 +103,8 @@ class EntryController extends AbstractController
         CustomerRepository $customerRepository,
         EncoderFactoryInterface $encoderFactory,
         ValidatorInterface $validatorInterface,
-        TokenStorageInterface $tokenStorage
+        TokenStorageInterface $tokenStorage,
+        PointHelper $pointHelper
     ) {
         $this->customerStatusRepository = $customerStatusRepository;
         $this->mailService = $mailService;
@@ -106,6 +114,7 @@ class EntryController extends AbstractController
         $this->recursiveValidator = $validatorInterface;
         $this->tokenStorage = $tokenStorage;
         $this->cartService = $cartService;
+        $this->pointHelper = $pointHelper;
     }
 
     /**
@@ -168,9 +177,12 @@ class EntryController extends AbstractController
                         ->setPassword($password)
                         ->setSecretKey($secretKey)
                         ->setPoint(0);
-
+                        
                     $this->entityManager->persist($Customer);
                     $this->entityManager->flush();
+
+                    $this->pointHelper->addEntryPoint($Customer);
+                    $this->entityManager->flush($Customer);
 
                     log_info('会員登録完了');
 

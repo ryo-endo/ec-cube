@@ -247,5 +247,28 @@ class PointHelper
     public function recount(\Eccube\Entity\Customer $Customer) {
         $newPoint = $this->pointHistoryRepository->getCurrentPoint($Customer);
         $Customer->setPoint($newPoint);
+        
+        $this->entityManager->flush($Customer);
+    }
+    
+    // 会員登録時ポイントを付与する
+    public function addEntryPoint(\Eccube\Entity\Customer $Customer) {
+        $point = 500;
+        
+        $now = new \DateTime();
+        $expirationDate = $now->modify('+2 months');
+        
+        $obj = new PointHistory();
+        $obj->setRecordType(PointHistory::TYPE_ADD);
+        $obj->setPoint($point);
+        $obj->setCustomer($Customer);
+        // $obj->setExpirationDate($Customer->getCreateDate()->modify($this->eccubeConfig['eccube_point_entry_lifetime']));
+        $obj->setExpirationDate($expirationDate);
+        $em = $this->entityManager;
+        $em->persist($obj);
+        $em->flush($obj);
+        
+        // 再集計
+        $this->recount($Customer);
     }
 }
