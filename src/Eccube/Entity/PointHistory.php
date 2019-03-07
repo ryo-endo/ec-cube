@@ -19,6 +19,11 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
         const TYPE_ADD = 1;
         const TYPE_USE = 2;
         
+        const EVENT_NULL = 0;
+        const EVENT_SHOPPING = 1;
+        const EVENT_ENTRY = 2;
+        const EVENT_ORDER_CANCEL = 3;
+        
         /**
          * @return string
          */
@@ -83,15 +88,19 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
          * @ORM\Column(name="record_type", type="integer", nullable=true)
          */
         private $record_type = self::TYPE_NULL;
+        
+        /**
+         * @var int
+         *
+         * @ORM\Column(name="record_event", type="integer", nullable=true)
+         */
+        private $record_event = self::EVENT_NULL;
 
         /**
          * Constructor
          */
         public function __construct()
         {
-            // $this->PaymentOptions = new \Doctrine\Common\Collections\ArrayCollection();
-            // $this->PointHistoryFees = new \Doctrine\Common\Collections\ArrayCollection();
-            // $this->PointHistoryTimes = new \Doctrine\Common\Collections\ArrayCollection();
         }
 
         /**
@@ -246,6 +255,30 @@ if (!class_exists('\Eccube\Entity\PointHistory')) {
         public function getRecordType()
         {
             return $this->record_type;
+        }
+        
+        /**
+         * Set recordEvent.
+         *
+         * @param int $record_event
+         *
+         * @return PointHistory
+         */
+        public function setRecordEvent($record_event)
+        {
+            $this->record_event = $record_event;
+    
+            return $this;
+        }
+    
+        /**
+         * Get recordEvent.
+         *
+         * @return int
+         */
+        public function getRecordEvent()
+        {
+            return $this->record_event;
         }
     }
 }

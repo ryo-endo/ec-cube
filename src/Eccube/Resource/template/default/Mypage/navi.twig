@@ -47,10 +47,16 @@ file that was distributed with this source code.
             <tr>
                 <td>{{ history.create_date|date_min }}</td>
                 <td>
-                {% if history.point < 0 %}
-                    利用
-                {% else %}
-                    獲得
+                {% if history.record_event == 1 %}
+                    {% if history.record_type == 1 %}
+                        獲得
+                    {% elseif history.record_type == 2 %}
+                        利用
+                    {% endif %}
+                {% elseif history.record_event == 2 %}
+                    会員登録 特典
+                {% elseif history.record_event == 3 %}
+                    ご注文取り消し
                 {% endif %}
                 </td>
                 <td>{{ history.point }}</td>

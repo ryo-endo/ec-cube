@@ -181,6 +181,7 @@ class EntryController extends AbstractController
                     $this->entityManager->persist($Customer);
                     $this->entityManager->flush();
 
+                    // 会員登録ポイントの付与
                     $this->pointHelper->addEntryPoint($Customer);
 
                     log_info('会員登録完了');

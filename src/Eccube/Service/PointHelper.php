@@ -199,6 +199,7 @@ class PointHelper
                 // ユーザの保有ポイントを減算する履歴を追加
                 $obj = new PointHistory();
                 $obj->setRecordType(PointHistory::TYPE_USE);
+                $obj->setRecordEvent(PointHistory::EVENT_SHOPPING);
                 $obj->setPoint(-$val);
                 $obj->setCustomer($Customer);
                 $obj->setOrder($itemHolder);
@@ -221,6 +222,7 @@ class PointHelper
         if ($usePoint > 0) {
             $obj = new PointHistory();
             $obj->setRecordType(PointHistory::TYPE_USE);
+            $obj->setRecordEvent(PointHistory::EVENT_SHOPPING);
             $obj->setPoint(-$usePoint);
             $obj->setCustomer($Customer);
             $obj->setOrder($itemHolder);
@@ -240,6 +242,7 @@ class PointHelper
         // 利用したポイントをユーザに戻す履歴を追加
         $obj = new PointHistory();
         $obj->setRecordType(PointHistory::TYPE_ADD);
+        $obj->setRecordEvent(PointHistory::EVENT_SHOPPING);
         $obj->setPoint($point);
         $obj->setCustomer($Customer);
         $obj->setOrder($itemHolder);
@@ -267,6 +270,7 @@ class PointHelper
         
         $obj = new PointHistory();
         $obj->setRecordType(PointHistory::TYPE_ADD);
+        $obj->setRecordEvent(PointHistory::EVENT_ENTRY);
         $obj->setPoint($point);
         $obj->setCustomer($Customer);
         $obj->setExpirationDate($expirationDate);
