@@ -237,12 +237,13 @@ class PointHelper
 
     public function rollback(ItemHolderInterface $itemHolder, $point)
     {
+        $event = ($itemHolder->getOrderNo() == null ) ? PointHistory::EVENT_SHOPPING : PointHistory::EVENT_ORDER_CANCEL ;
         $Customer = $itemHolder->getCustomer();
         
         // 利用したポイントをユーザに戻す履歴を追加
         $obj = new PointHistory();
         $obj->setRecordType(PointHistory::TYPE_ADD);
-        $obj->setRecordEvent(PointHistory::EVENT_SHOPPING);
+        $obj->setRecordEvent($event);
         $obj->setPoint($point);
         $obj->setCustomer($Customer);
         $obj->setOrder($itemHolder);
