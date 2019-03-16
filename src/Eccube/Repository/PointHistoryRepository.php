@@ -3,6 +3,7 @@
 namespace Eccube\Repository;
 
 use Eccube\Entity\Customer;
+use Eccube\Entity\Order;
 use Eccube\Entity\PointHistory;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
@@ -36,7 +37,7 @@ class PointHistoryRepository extends AbstractRepository
         ->getQuery()
         ->getSingleResult();
         
-        return $result['total'];
+        return $result['total'] ?? 0;
     }
     
     // 有効期限のあるポイントの一覧を取得する
@@ -60,6 +61,22 @@ class PointHistoryRepository extends AbstractRepository
             return $qb->getQuery()->getArrayResult();
         } catch (NoResultException $e) {
             return array(); // 空を返す
+        }
+    }
+    
+    function getHistoryByOrder(\Eccube\Entity\Order $Order){
+        try {
+            $qb = $this->createQueryBuilder('p');
+            
+            $qb->select('SUM(p.point) AS point, p.expiration_date AS date')
+            ->where('p.Order = :Order')
+            ->orderBy('p.expiration_date', 'asc')
+            ->groupBy('p.expiration_date')
+            ->setParameter('Order', $Order);
+            
+            return $qb->getQuery()->getArrayResult();
+        } catch (NoResultException $e) {
+            return array();
         }
     }
 }

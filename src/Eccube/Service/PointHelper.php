@@ -237,19 +237,30 @@ class PointHelper
 
     public function rollback(ItemHolderInterface $itemHolder, $point)
     {
+        $Order = $itemHolder;
         $event = ($itemHolder->getOrderNo() == null ) ? PointHistory::EVENT_SHOPPING : PointHistory::EVENT_ORDER_CANCEL ;
         $Customer = $itemHolder->getCustomer();
         
-        // 利用したポイントをユーザに戻す履歴を追加
-        $obj = new PointHistory();
-        $obj->setRecordType(PointHistory::TYPE_ADD);
-        $obj->setRecordEvent($event);
-        $obj->setPoint($point);
-        $obj->setCustomer($Customer);
-        $obj->setOrder($itemHolder);
-        $em = $this->entityManager;
-        $em->persist($obj);
-        $em->flush($obj);
+        // 受注に紐づくポイント履歴から、ポイント数とその有効期限を復元していく
+        $tempPoint = $point;
+        $PointHistories = $this->pointHistoryRepository->getHistoryByOrder($Order);
+        
+        foreach ($PointHistories as $PointHistory) {
+            $rollbackPoint = min($tempPoint, -$PointHistory['point']);
+            
+            $obj = new PointHistory();
+            $obj->setRecordType(PointHistory::TYPE_ADD);
+            $obj->setRecordEvent($event);
+            $obj->setPoint($rollbackPoint);
+            $obj->setCustomer($Customer);
+            $obj->setOrder($Order);
+            $obj->setExpirationDate($PointHistory['date']);
+            $em = $this->entityManager;
+            $em->persist($obj);
+            $em->flush($obj);
+            
+            $tempPoint -= $rollbackPoint;
+        }
         
         // 再集計
         $this->recount($Customer);
