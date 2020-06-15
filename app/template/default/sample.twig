@@ -1,0 +1,32 @@
+{% if app.session.has('_security_admin') %}
+
+<a id="fab" href="#">
+    <i class="fa fa-pen" onclick='$(".sidebar.left").sidebar().trigger("sidebar:open");'></i>
+</a>
+<div class="sidebars">
+    <div class="sidebar left">
+        <div class="col">
+            <div class="border text-center" style="padding: 20px">
+                <div class="ec-select">
+                    <p class="ec-heading-bold">
+                    フォント
+                    </p>
+                    <select id="select-customize-title" onChange="changeTitleFont()">
+                        <option>デフォルト</option>
+                        <option>ヒラギノ丸ゴ</option>
+                        <option>ヒラギノ角ゴ</option>
+                        <option>游明朝体</option>
+                    </select>
+                </div>
+                <p class="ec-heading-bold">
+                    フォントサイズ
+                </p>
+                <input type="range" name="num" min="10" max="100" step="5" value="40" onchange="changeFontSize(this.value)">
+                <a href="#" class="btn btn-success active" style="margin: 20px" onclick='$(".sidebar.left").sidebar().trigger("sidebar:close");'>保存</a>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
