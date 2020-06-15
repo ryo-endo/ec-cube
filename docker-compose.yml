@@ -54,12 +54,13 @@ services:
 
   ### MySQL ##################################
   mysql:
-    image: mysql:5.7
+    image: mysql:5.6
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: eccubedb
       MYSQL_USER: dbuser
       MYSQL_PASSWORD: secret
+    command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
     volumes:
       - mysql-database:/var/lib/mysql
     ports:

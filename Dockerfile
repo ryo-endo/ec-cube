@@ -1,4 +1,4 @@
-FROM php:7.3-apache-stretch
+FROM php:7.4-apache-buster
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html
 
